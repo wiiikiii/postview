@@ -1,4 +1,34 @@
 <h1>Data for <%= @database %> and <%= @table %></h1>
 
-<%= debug @rows %>
+<%#= debug @rows %>
+
+<% if @rows.size > 0 %>
+<div class="rows">
+  <table>
+    <thead>
+      <tr>
+        <% @rows.first.attributes.each do | field | %>
+        <th><%= field.first %></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% @rows.each do | row | %>
+      <tr>
+        <% row.attributes.each do | field | %>
+        <td><%= field.last %></td>
+        <% end %>
+      </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<br>
+
+<%= paginate @rows %>
+
+<br>
+
+<% end %>
 

@@ -16,7 +16,7 @@ class MainController < ApplicationController
     puts "Database::#{Database.object_classify_name(@database)}::#{Database.object_classify_name(@table)}"
 
     @tables = Database.tables_for( params[ :db ] )
-    @rows = "Database::#{Database.object_classify_name(@database)}::#{Database.object_classify_name(@table)}".constantize.all
+    @rows = "Database::#{Database.object_classify_name(@database)}::#{Database.object_classify_name(@table)}".constantize.page( params[ :page ] ).per( 10 )
   end
 
 end
