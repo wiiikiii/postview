@@ -1,0 +1,12 @@
+<h1>Tables for <%= @database %></h1>
+
+<%#= debug @tables %>
+
+<div>
+  <ul>
+  <% @tables.each do | table | %>
+    <% tab = "Database::#{@database.classify}::#{table.to_s}".constantize %>
+    <li><%= link_to tab.table_name.classify, databases_table_path( @database, tab.table_name ) %></li>
+  <% end %>
+  </ul>
+</div>

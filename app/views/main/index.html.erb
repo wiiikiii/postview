@@ -1,0 +1,9 @@
+<h1>Databases</h1>
+
+<div>
+  <ul>
+  <% @databases.each do | database | %>
+    <li><%= link_to database.datname, databases_path( database.datname ) %></li>
+  <% end %>
+  </ul>
+</div>

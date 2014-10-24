@@ -1,0 +1,31 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: 5
+
+development:
+  <<: *default
+  database: postview
+  host: localhost
+
+  #username: postview
+  #password:
+  #port: 5432
+  #schema_search_path: myapp,sharedapp,public
+
+  # Minimum log levels, in increasing order:
+  #   debug5, debug4, debug3, debug2, debug1,
+  #   log, notice, warning, error, fatal, and panic
+  # Defaults to warning.
+  #min_messages: notice
+
+test:
+  <<: *default
+  database: postview_test
+
+#   DATABASE_URL="postgres://myuser:mypass@localhost/somedatabase"
+production:
+  <<: *default
+  database: postview_production
+  username: postview
+  password: <%= ENV['POSTVIEW_DATABASE_PASSWORD'] %>
