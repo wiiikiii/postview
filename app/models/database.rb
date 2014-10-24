@@ -26,9 +26,9 @@ class Database < ActiveRecord::Base
 	end
   
   def self.tables_for( database )
-    if not Database.const_defined?( database.classify )
+    if not Database.const_defined?( object_classify_name(database) )
       Database.module_eval <<-"EOS"
-        module #{database.classify}
+        module #{object_classify_name(database)}
           class Connect < ActiveRecord::Base
             self.table_name = "pg_database"
             self.primary_key = "datdba"
@@ -46,18 +46,18 @@ class Database < ActiveRecord::Base
     #
     # establish connection to be able to get all tables
     #
-    db = "Database::#{database.classify}".constantize
-    conn = "Database::#{database.classify}::Connect".constantize.connection
+    db = "Database::#{object_classify_name(database)}".constantize
+    conn = "Database::#{object_classify_name(database)}::Connect".constantize.connection
     begin
       conn.tables.each do | table |
-        if not db.const_defined?( "Database::#{database.classify}::#{table.classify}" )
+        if not db.const_defined?( "Database::#{object_classify_name(database)}::#{object_classify_name(table)}" )
           puts "* create table Database::#{database.classify}::#{table.classify}"
           #
           # we have created a Module Database::DBNAME in which we will
           # create all classes of all tables we find in database
           #
-          "Database::#{database.classify}".constantize.module_eval <<-"EOS"
-            class #{table.classify} < #{"Database::#{database.classify}::Connect".constantize}
+          "Database::#{object_classify_name(database)}".constantize.module_eval <<-"EOS"
+            class #{object_classify_name(table)} < #{"Database::#{object_classify_name(database)}::Connect".constantize}
               self.table_name = "#{table.to_sym}"
               self.primary_key = :id
               #establish_connection( db_config )
@@ -69,7 +69,11 @@ class Database < ActiveRecord::Base
     rescue Exception => e
       puts e
     end
-    "Database::#{database.classify}".constantize.constants
+    "Database::#{object_classify_name(database)}".constantize.constants
+  end
+  
+  def self.object_classify_name( name )
+    name.gsub( /[-.]/, '_' ).classify
   end
   
 end

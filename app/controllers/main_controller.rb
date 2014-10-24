@@ -13,10 +13,10 @@ class MainController < ApplicationController
     @database = params[ :db ]
     @table = params[ :id ]
     puts "--------------------------"
-    puts "Database::#{@database.classify}::#{@table.classify}"
+    puts "Database::#{Database.object_classify_name(@database)}::#{Database.object_classify_name(@table)}"
 
     @tables = Database.tables_for( params[ :db ] )
-    @rows = "Database::#{@database.classify}::#{@table.classify}".constantize.all
+    @rows = "Database::#{Database.object_classify_name(@database)}::#{Database.object_classify_name(@table)}".constantize.all
   end
 
 end
