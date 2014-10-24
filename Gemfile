@@ -10,7 +10,11 @@ gem 'turbolinks'
 gem 'jbuilder', '~> 2.0'
 gem 'sdoc', '~> 0.4.0', group: :doc
 
+gem 'bootstrap-sass', '~> 3.0'
+gem 'bootstrap-select-rails'
+
 gem 'kaminari'
+gem 'kaminari-bootstrap'
 
 gem 'spring',        group: :development
 gem 'bcrypt', '~> 3.1.7'

@@ -1,10 +1,10 @@
-<h1>Data for <%= @database %> and <%= @table %></h1>
+<h3>Data for <%= @database %> and <%= @table %></h3>
 
 <%#= debug @rows %>
 
 <% if @rows.size > 0 %>
 <div class="rows">
-  <table>
+  <table class="table">
     <thead>
       <tr>
         <% @rows.first.attributes.each do | field | %>
