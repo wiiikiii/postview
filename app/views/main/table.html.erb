@@ -1,34 +1,109 @@
-<h3>Data for <%= @database %> and <%= @table %></h3>
+<% content_for :title, "#{@table} — #{@database} — Postview" %>
 
-<%#= debug @rows %>
-
-<% if @rows.size > 0 %>
-<div class="rows">
-  <table class="table">
-    <thead>
-      <tr>
-        <% @rows.first.attributes.each do | field | %>
-        <th><%= field.first %></th>
-        <% end %>
-      </tr>
-    </thead>
-    <tbody>
-      <% @rows.each do | row | %>
-      <tr>
-        <% row.attributes.each do | field | %>
-        <td><%= field.last %></td>
-        <% end %>
-      </tr>
-      <% end %>
-    </tbody>
-  </table>
-</div>
-
-<br>
-
-<%= paginate @rows %>
-
-<br>
-
+<% content_for :breadcrumb do %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @database, database_path(@database), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <span class="text-slate-300 font-medium"><%= @table %></span>
 <% end %>
 
+<div class="max-w-full">
+  <div class="mb-4 flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-gray-900"><%= @table %></h1>
+      <p class="mt-0.5 text-sm text-gray-500">
+        <%= @rows.total_count %> rows &middot; page <%= @rows.current_page %> of <%= @rows.total_pages %>
+      </p>
+    </div>
+    <%= link_to database_path(@database), class: "inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors" do %>
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      Back to tables
+    <% end %>
+  </div>
+
+  <% if @columns.empty? %>
+    <div class="text-center py-16 bg-white rounded-xl border border-gray-200">
+      <p class="text-sm text-gray-400">No columns found in this table</p>
+    </div>
+  <% else %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="w-10 px-3 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">#</th>
+              <% @columns.each do |col| %>
+                <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 tracking-wide whitespace-nowrap"><%= col %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @rows.each_with_index do |row, i| %>
+              <tr class="hover:bg-sky-50 transition-colors">
+                <td class="px-3 py-2 text-xs text-gray-300 tabular-nums">
+                  <%= (@rows.current_page - 1) * 25 + i + 1 %>
+                </td>
+                <% @columns.each do |col| %>
+                  <% value = row.read_attribute(col) %>
+                  <td class="px-3 py-2 text-gray-700 max-w-xs">
+                    <% if value.nil? %>
+                      <span class="text-gray-300 italic text-xs">NULL</span>
+                    <% elsif value.is_a?(String) && value.length > 100 %>
+                      <span class="font-mono text-xs" title="<%= h(value) %>"><%= truncate(value, length: 100) %></span>
+                    <% else %>
+                      <span class="font-mono text-xs whitespace-nowrap"><%= value %></span>
+                    <% end %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+
+            <% if @rows.empty? %>
+              <tr>
+                <td colspan="<%= @columns.count + 1 %>" class="px-3 py-10 text-center text-sm text-gray-400">
+                  No rows in this table
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <% if @rows.total_pages > 1 %>
+      <div class="mt-4 flex items-center justify-between">
+        <p class="text-sm text-gray-500">
+          Showing rows <%= (@rows.current_page - 1) * 25 + 1 %>–<%= [(@rows.current_page * 25), @rows.total_count].min %>
+          of <%= @rows.total_count %>
+        </p>
+        <div class="flex items-center gap-1">
+          <% if @rows.first_page? %>
+            <span class="px-3 py-1.5 text-sm text-gray-300 cursor-not-allowed">Previous</span>
+          <% else %>
+            <%= link_to "Previous", database_table_path(@database, @table, page: @rows.current_page - 1),
+                  class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" %>
+          <% end %>
+
+          <% (@rows.current_page - 2 .. @rows.current_page + 2).each do |p| %>
+            <% next if p < 1 || p > @rows.total_pages %>
+            <% if p == @rows.current_page %>
+              <span class="px-3 py-1.5 text-sm font-medium text-white bg-sky-600 rounded-lg"><%= p %></span>
+            <% else %>
+              <%= link_to p, database_table_path(@database, @table, page: p),
+                    class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" %>
+            <% end %>
+          <% end %>
+
+          <% if @rows.last_page? %>
+            <span class="px-3 py-1.5 text-sm text-gray-300 cursor-not-allowed">Next</span>
+          <% else %>
+            <%= link_to "Next", database_table_path(@database, @table, page: @rows.current_page + 1),
+                  class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

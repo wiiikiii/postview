@@ -1,52 +1,55 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Postview</title>
-	<link href='http://fonts.googleapis.com/css?family=Nunito:400,700,300' rel='stylesheet' type='text/css'>
-  <%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track' => true %>
-  <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
-  <%= csrf_meta_tags %>
-</head>
-<body>
+<html class="h-full bg-gray-100">
+  <head>
+    <title><%= content_for(:title) || "Postview" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
 
-  <div class="navbar navbar-default navbar-fixed" role="navigation">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-			<%= link_to "Admin", root_path, :class => 'navbar-brand' %>
-    </div>
-    <div class="navbar-collapse collapse">
-			<% if true #admin_logged_in? %>
-      <ul class="nav navbar-nav">
-        <li><%= link_to '<i class="glyphicon-class glyphicon glyphicon-th-list"></i> Product'.html_safe %></li>
-        <li><%= link_to '<i class="glyphicon-class glyphicon glyphicon-user"></i> Customer'.html_safe %></li>
-        <li><%= link_to '<i class="glyphicon-class glyphicon glyphicon-th"></i> Basket'.html_safe %></li>
-        <li class="dropdown">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon-class glyphicon glyphicon-cog"></i> System <b class="caret"></b></a>
-          <ul class="dropdown-menu">
-            <li><%= link_to '<i class="glyphicon-class glyphicon glyphicon-tags"></i> Currency'.html_safe %></li>
-            <li class="divider"></li>
-            <li><%= link_to '<i class="glyphicon-class glyphicon glyphicon-user"></i> Admin'.html_safe %></li>
-          </ul>
-        </li>
-      </ul>
-      <ul class="nav navbar-nav navbar-right">
-				<li><%= link_to '<i class="glyphicon-class glyphicon glyphicon-log-out"></i> Logout'.html_safe %></li>
-      </ul>
-			<% end %>
-    </div>
-  </div>
-		
-  <div class="container">
-		
-		<%#= render 'layouts/backend/messages' %>
-		<%= yield %>
-		
-	</div>
+  <body class="h-full">
+    <div class="min-h-full">
+      <nav class="bg-slate-800 border-b border-slate-700">
+        <div class="max-w-full px-6">
+          <div class="flex h-14 items-center justify-between">
+            <div class="flex items-center gap-6">
+              <%= link_to root_path, class: "flex items-center gap-2 group" do %>
+                <svg class="h-5 w-5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m0 2.625c0 2.278 3.694 4.125 8.25 4.125s8.25-1.847 8.25-4.125" />
+                </svg>
+                <span class="text-white font-semibold tracking-wide group-hover:text-sky-300 transition-colors">Postview</span>
+              <% end %>
 
-</body>
+              <% if content_for?(:breadcrumb) %>
+                <div class="flex items-center gap-2 text-sm text-slate-400">
+                  <%= yield :breadcrumb %>
+                </div>
+              <% end %>
+            </div>
+
+            <% if current_user %>
+              <span class="text-slate-400 text-sm flex items-center gap-1.5">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                </svg>
+                <%= current_user %>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      </nav>
+
+      <% if flash[:alert] %>
+        <div class="bg-red-50 border-l-4 border-red-400 p-4 mx-6 mt-4 rounded">
+          <p class="text-sm text-red-700"><%= flash[:alert] %></p>
+        </div>
+      <% end %>
+
+      <main class="py-6 px-6">
+        <%= yield %>
+      </main>
+    </div>
+  </body>
 </html>

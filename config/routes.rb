@@ -1,48 +1,8 @@
 Rails.application.routes.draw do
+  get "up" => "rails/health#show", as: :rails_health_check
 
-  get '/databases/:id' => 'main#database', :as => :databases
-  get '/databases/:db/:id' => 'main#table', :as => :databases_table
+  get "/databases/:id"        => "main#database",  as: :database
+  get "/databases/:db/:table" => "main#table",     as: :database_table
 
-  # Example resource route with options:
-  #   resources :products do
-  #     member do
-  #       get 'short'
-  #       post 'toggle'
-  #     end
-  #
-  #     collection do
-  #       get 'sold'
-  #     end
-  #   end
-
-  # Example resource route with sub-resources:
-  #   resources :products do
-  #     resources :comments, :sales
-  #     resource :seller
-  #   end
-
-  # Example resource route with more complex sub-resources:
-  #   resources :products do
-  #     resources :comments
-  #     resources :sales do
-  #       get 'recent', on: :collection
-  #     end
-  #   end
-
-  # Example resource route with concerns:
-  #   concern :toggleable do
-  #     post 'toggle'
-  #   end
-  #   resources :posts, concerns: :toggleable
-  #   resources :photos, concerns: :toggleable
-
-  # Example resource route within a namespace:
-  #   namespace :admin do
-  #     # Directs /admin/products/* to Admin::ProductsController
-  #     # (app/controllers/admin/products_controller.rb)
-  #     resources :products
-  #   end
-
-  root 'main#index'
-
+  root "main#index"
 end

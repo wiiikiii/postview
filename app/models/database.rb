@@ -1,80 +1,61 @@
 class Database < ActiveRecord::Base
-  
-  self.table_name = "pg_database"
-  self.primary_key = "datdba"
-  
-  # helper to check if a class exists
-	def self.class_exists?(class_name)
-	  eval("defined?(#{class_name}) && #{class_name}.is_a?(Class)") == true
-	end
+  self.table_name  = "pg_database"
+  self.primary_key = "oid"
 
-  # helper for createing a class
-	def self.create_class(class_name, superclass, &block)
-    klass = Class.new superclass, &block
-    Object.const_set class_name, klass
+  def self.object_classify_name(name)
+    name.gsub(/[-.]/, "_").classify
   end
 
-	#
-	# Create a local table model
-	#
-	def self.alloc_local_table( tablename )
-		puts "Create local model for #{tablename}"
-		create_class( tablename.classify, ActiveRecord::Base ) do
-			def self.table_name_prefix; 'trans_'; end
-			def self.attributes_protected_by_default; []; end
-		end if not class_exists?( tablename.classify )
-	end
-  
-  def self.tables_for( database )
-    if not Database.const_defined?( object_classify_name(database) )
-      Database.module_eval <<-"EOS"
-        module #{object_classify_name(database)}
-          class Connect < ActiveRecord::Base
-            self.table_name = "pg_database"
-            self.primary_key = "datdba"
-            def self.db_config
-              config = ActiveRecord::Base.connection.instance_eval { @config }
-              config.merge( :database => '#{database}', :pool => 1 )
-            end
-            establish_connection( db_config )
-          end
-          # self
-        end
-      EOS
-    end
-    
-    #
-    # establish connection to be able to get all tables
-    #
-    db = "Database::#{object_classify_name(database)}".constantize
-    conn = "Database::#{object_classify_name(database)}::Connect".constantize.connection
+  # Returns the sorted list of original table name strings.
+  def self.tables_for(database_name)
+    ensure_namespace(database_name)
+    db_module = const_get(object_classify_name(database_name))
+    return db_module.instance_variable_get(:@table_names) if db_module.instance_variable_defined?(:@table_names)
+
+    table_names = []
     begin
-      conn.tables.each do | table |
-        if not db.const_defined?( "Database::#{object_classify_name(database)}::#{object_classify_name(table)}" )
-          puts "* create table Database::#{database.classify}::#{table.classify}"
-          #
-          # we have created a Module Database::DBNAME in which we will
-          # create all classes of all tables we find in database
-          #
-          "Database::#{object_classify_name(database)}".constantize.module_eval <<-"EOS"
-            class #{object_classify_name(table)} < #{"Database::#{object_classify_name(database)}::Connect".constantize}
-              self.table_name = "#{table.to_sym}"
-              self.primary_key = :id
-              #establish_connection( db_config )
-              #connection
-            end
-          EOS
+      db_module::Connect.connection.tables.sort.each do |table|
+        const = object_classify_name(table)
+        unless db_module.const_defined?(const, false)
+          klass = Class.new(db_module::Connect)
+          db_module.const_set(const, klass)
+          klass.table_name  = table
+          klass.primary_key = nil
         end
+        table_names << table
       end
-    rescue Exception => e
-      puts e
+    rescue => e
+      Rails.logger.error "tables_for(#{database_name}): #{e.message}"
     end
-    "Database::#{object_classify_name(database)}".constantize.constants
-  end
-  
-  def self.object_classify_name( name )
-    name.gsub( /[-.]/, '_' ).classify
-  end
-  
-end
 
+    db_module.instance_variable_set(:@table_names, table_names)
+    table_names
+  end
+
+  # Returns the ActiveRecord model class for a specific table.
+  def self.model_for(database_name, table_name)
+    tables_for(database_name)
+    db_module = const_get(object_classify_name(database_name))
+    db_module.const_get(object_classify_name(table_name), false)
+  end
+
+  private
+
+  def self.ensure_namespace(database_name)
+    ns = object_classify_name(database_name)
+    return if const_defined?(ns)
+
+    config = ActiveRecord::Base.connection_db_config.configuration_hash
+               .merge(database: database_name)
+
+    mod = Module.new
+    const_set(ns, mod)
+
+    connect = Class.new(ActiveRecord::Base) do
+      self.table_name  = "pg_database"
+      self.primary_key = "oid"
+    end
+    mod.const_set(:Connect, connect)
+    connect.establish_connection(config)
+  end
+end

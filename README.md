@@ -1,10 +1,24 @@
-postview
-========
+# README
 
-rails project to view, change and work in all databases and tables on one postgresql server.
+This README would normally document whatever steps are necessary to get the
+application up and running.
 
-this projects is a case study how to switch db connections on demand and work in a new connection. all connections will be caches so the performance when connecting more than once becomes much better.
+Things you may want to cover:
 
-you connect first to a database and you are using the same credentials for connecting to all the other databases on this db server.
+* Ruby version
 
-this first release is just a case study.
+* System dependencies
+
+* Configuration
+
+* Database creation
+
+* Database initialization
+
+* How to run the test suite
+
+* Services (job queues, cache servers, search engines, etc.)
+
+* Deployment instructions
+
+* ...
