@@ -1,22 +1,39 @@
 <% content_for :title, "Databases — Postview" %>
 
-<div class="max-w-6xl mx-auto">
-  <div class="mb-6">
-    <h1 class="text-xl font-semibold text-gray-900">Databases</h1>
-    <p class="mt-1 text-sm text-gray-500"><%= @databases.count %> databases on this server</p>
+<div class="max-w-6xl mx-auto" data-controller="search">
+  <div class="mb-6 flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-xl font-semibold text-gray-900">Databases</h1>
+      <p class="mt-1 text-sm text-gray-500">
+        <span data-search-target="count"><%= @databases.count %></span> databases on this server
+      </p>
+    </div>
+    <div class="relative mt-1 w-64 shrink-0">
+      <svg class="pointer-events-none absolute inset-y-0 left-3 my-auto h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
+      </svg>
+      <input type="search" placeholder="Suchen…"
+             class="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm shadow-sm placeholder-gray-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+             data-search-target="input"
+             data-action="input->search#filter">
+    </div>
   </div>
 
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
     <% @databases.each do |db| %>
-      <%= link_to database_path(db.datname),
-            class: "group flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-sky-300 transition-all" do %>
-        <svg class="h-8 w-8 text-slate-400 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m0 2.625c0 2.278 3.694 4.125 8.25 4.125s8.25-1.847 8.25-4.125" />
-        </svg>
-        <span class="text-xs font-medium text-gray-700 group-hover:text-sky-700 text-center break-all leading-tight">
-          <%= db.datname %>
-        </span>
-      <% end %>
+      <div data-search-target="item" data-name="<%= db.datname %>">
+        <%= link_to database_path(db.datname),
+              class: "group flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-sky-300 transition-all" do %>
+          <svg class="h-8 w-8 text-slate-400 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m0 2.625c0 2.278 3.694 4.125 8.25 4.125s8.25-1.847 8.25-4.125" />
+          </svg>
+          <span class="text-xs font-medium text-gray-700 group-hover:text-sky-700 text-center break-all leading-tight">
+            <%= db.datname %>
+          </span>
+        <% end %>
+      </div>
     <% end %>
   </div>
+
+  <p class="hidden mt-8 text-center text-sm text-gray-400" data-search-target="empty">Keine Treffer</p>
 </div>

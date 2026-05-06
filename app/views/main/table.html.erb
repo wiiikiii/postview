@@ -79,6 +79,16 @@
           of <%= @rows.total_count %>
         </p>
         <div class="flex items-center gap-1">
+          <%# First page %>
+          <% if @rows.first_page? %>
+            <span class="px-2 py-1.5 text-sm text-gray-300 cursor-not-allowed" title="Erste Seite">&laquo;</span>
+          <% else %>
+            <%= link_to database_table_path(@database, @table, page: 1),
+                  class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors",
+                  title: "Erste Seite" do %>&laquo;<% end %>
+          <% end %>
+
+          <%# Previous page %>
           <% if @rows.first_page? %>
             <span class="px-3 py-1.5 text-sm text-gray-300 cursor-not-allowed">Previous</span>
           <% else %>
@@ -96,11 +106,21 @@
             <% end %>
           <% end %>
 
+          <%# Next page %>
           <% if @rows.last_page? %>
             <span class="px-3 py-1.5 text-sm text-gray-300 cursor-not-allowed">Next</span>
           <% else %>
             <%= link_to "Next", database_table_path(@database, @table, page: @rows.current_page + 1),
                   class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" %>
+          <% end %>
+
+          <%# Last page %>
+          <% if @rows.last_page? %>
+            <span class="px-2 py-1.5 text-sm text-gray-300 cursor-not-allowed" title="Letzte Seite">&raquo;</span>
+          <% else %>
+            <%= link_to database_table_path(@database, @table, page: @rows.total_pages),
+                  class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors",
+                  title: "Letzte Seite" do %>&raquo;<% end %>
           <% end %>
         </div>
       </div>

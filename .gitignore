@@ -16,3 +16,5 @@
 /tmp
 vendor/gems
 .DS_Store
+config/master.key
+config/credentials.yml.*
