@@ -1,0 +1,219 @@
+<% content_for :title, "Profil – Postview" %>
+
+<div class="max-w-3xl mx-auto space-y-6">
+  <!-- Page header -->
+  <div>
+    <h1 class="text-2xl font-bold text-slate-800">Profil & Einstellungen</h1>
+    <p class="text-slate-500 text-sm mt-1">Verwalten Sie Ihr Konto, 2FA und API-Token</p>
+  </div>
+
+  <!-- Flash messages -->
+  <% if flash[:notice] %>
+    <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+      <p class="text-sm text-green-700 break-all"><%= flash[:notice] %></p>
+    </div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+      <p class="text-sm text-red-700"><%= flash[:alert] %></p>
+    </div>
+  <% end %>
+
+  <!-- Account Info -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <h2 class="text-base font-semibold text-slate-800">Kontoinformationen</h2>
+    </div>
+    <div class="p-6">
+      <%= form_with url: profile_path, method: :patch, class: "space-y-4" do |f| %>
+        <% if flash.now[:alert] %>
+          <div class="bg-red-50 border border-red-200 rounded-xl p-3">
+            <p class="text-sm text-red-700"><%= flash.now[:alert] %></p>
+          </div>
+        <% end %>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">Benutzername</label>
+            <%= f.text_field :username,
+                name: "user[username]",
+                value: current_user.username,
+                class: "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">E-Mail</label>
+            <%= f.email_field :email,
+                name: "user[email]",
+                value: current_user.email,
+                class: "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">PostgreSQL-Benutzer</label>
+            <%= f.text_field :pg_username,
+                name: "user[pg_username]",
+                value: current_user.pg_username,
+                class: "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" %>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">PostgreSQL-Passwort</label>
+            <%= f.password_field :pg_password,
+                name: "user[pg_password]",
+                placeholder: "Leer lassen zum Beibehalten",
+                class: "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" %>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-3">Passwort ändern</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Neues Passwort</label>
+              <%= f.password_field :password,
+                  name: "user[password]",
+                  autocomplete: "new-password",
+                  placeholder: "Leer lassen zum Beibehalten",
+                  class: "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" %>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Passwort bestätigen</label>
+              <%= f.password_field :password_confirmation,
+                  name: "user[password_confirmation]",
+                  autocomplete: "new-password",
+                  placeholder: "Passwort wiederholen",
+                  class: "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent" %>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <%= f.submit "Speichern",
+              class: "bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-5 rounded-lg transition-colors cursor-pointer text-sm" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- 2FA Section -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div>
+        <h2 class="text-base font-semibold text-slate-800">Zwei-Faktor-Authentifizierung</h2>
+        <p class="text-sm text-slate-500 mt-0.5">
+          <% if current_user.otp_enabled? %>
+            <span class="inline-flex items-center gap-1 text-green-600 font-medium">
+              <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+              Aktiviert
+            </span>
+          <% else %>
+            <span class="text-slate-400">Deaktiviert</span>
+          <% end %>
+        </p>
+      </div>
+      <% if current_user.otp_enabled? %>
+        <div class="flex items-center gap-3">
+          <%= form_with url: disable_two_factor_path, method: :delete, class: "flex items-center gap-2" do |f| %>
+            <%= f.text_field :code,
+                placeholder: "Code eingeben",
+                class: "border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono text-center",
+                maxlength: 7 %>
+            <%= f.submit "2FA deaktivieren",
+                class: "bg-red-600 hover:bg-red-500 text-white text-sm font-medium py-1.5 px-3 rounded-lg transition-colors cursor-pointer" %>
+          <% end %>
+        </div>
+      <% else %>
+        <%= link_to "2FA einrichten", new_two_factor_setup_path,
+            class: "bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors" %>
+      <% end %>
+    </div>
+    <div class="px-6 py-4">
+      <p class="text-sm text-slate-500">
+        Schützen Sie Ihr Konto zusätzlich mit einer Authenticator-App wie Google Authenticator, Authy oder 1Password.
+        <%= current_user.otp_enabled? ? "Um 2FA zu deaktivieren, geben Sie einen gültigen Code ein." : "Klicken Sie auf '2FA einrichten', um den Einrichtungsprozess zu starten." %>
+      </p>
+    </div>
+  </div>
+
+  <!-- API Tokens Section -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <h2 class="text-base font-semibold text-slate-800">API-Token</h2>
+      <p class="text-sm text-slate-500 mt-0.5">Token für den programmatischen Zugriff auf die API</p>
+    </div>
+
+    <!-- Create new token -->
+    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+      <%= form_with url: api_tokens_path, method: :post, class: "flex items-end gap-3" do |f| %>
+        <div class="flex-1">
+          <label class="block text-xs font-medium text-slate-600 mb-1">Token-Name</label>
+          <%= f.text_field :name,
+              placeholder: "z.B. CI/CD Pipeline, Monitoring...",
+              class: "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" %>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Ablaufdatum (optional)</label>
+          <%= f.date_field :expires_at,
+              class: "border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" %>
+        </div>
+        <%= f.submit "Token erstellen",
+            class: "bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors cursor-pointer text-sm" %>
+      <% end %>
+    </div>
+
+    <!-- Token list -->
+    <div class="divide-y divide-slate-100">
+      <% if @api_tokens.empty? %>
+        <div class="px-6 py-8 text-center">
+          <p class="text-slate-400 text-sm">Noch keine API-Token erstellt.</p>
+        </div>
+      <% else %>
+        <% @api_tokens.each do |token| %>
+          <div class="px-6 py-4 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-800"><%= token.name %></p>
+              <div class="flex items-center gap-3 mt-1">
+                <span class="text-xs text-slate-400 font-mono">
+                  <%= token.token_digest.first(16) %>…
+                </span>
+                <% if token.active? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">aktiv</span>
+                <% else %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">abgelaufen</span>
+                <% end %>
+                <% if token.expires_at %>
+                  <span class="text-xs text-slate-400">Ablauf: <%= token.expires_at.strftime("%d.%m.%Y") %></span>
+                <% end %>
+                <% if token.last_used_at %>
+                  <span class="text-xs text-slate-400">Zuletzt: <%= token.last_used_at.strftime("%d.%m.%Y %H:%M") %></span>
+                <% end %>
+              </div>
+            </div>
+            <%= button_to api_token_path(token), method: :delete,
+                class: "text-red-500 hover:text-red-700 text-sm font-medium transition-colors",
+                data: { turbo_confirm: "Token '#{token.name}' wirklich löschen?" } do %>
+              Löschen
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="px-6 py-4 bg-amber-50/50 border-t border-amber-100 rounded-b-xl">
+      <p class="text-xs text-amber-700">
+        <strong>Sicherheitshinweis:</strong> Token werden nur einmal direkt nach der Erstellung angezeigt.
+        Speichern Sie den Token an einem sicheren Ort – er kann nicht wieder abgerufen werden.
+      </p>
+    </div>
+  </div>
+
+  <!-- API Docs link -->
+  <div class="bg-slate-800 rounded-xl p-5 flex items-center justify-between">
+    <div>
+      <h3 class="text-white font-semibold text-sm">REST API</h3>
+      <p class="text-slate-400 text-xs mt-0.5">Interaktive API-Dokumentation mit Try-it-out Funktion</p>
+    </div>
+    <%= link_to api_docs_path,
+        class: "bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors" do %>
+      API Docs ansehen
+    <% end %>
+  </div>
+</div>

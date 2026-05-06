@@ -1,0 +1,25 @@
+<p class="greeting">Hallo <%= @user.username %>,</p>
+
+<p class="text">
+  Du hast einen Magic Link für Postview angefordert. Klicke auf den Button,
+  um dich einzuloggen. Der Link ist <strong><%= @expires_in %> Minuten</strong> gültig
+  und kann nur einmal verwendet werden.
+</p>
+
+<div class="btn-wrap">
+  <%= link_to "Jetzt anmelden", @login_url, class: "btn" %>
+</div>
+
+<hr class="divider">
+
+<p class="small">
+  Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:
+</p>
+<p class="url"><%= @login_url %></p>
+
+<hr class="divider">
+
+<p class="small">
+  Falls du keinen Magic Link angefordert hast, kannst du diese E-Mail ignorieren.
+  Dein Konto ist sicher.
+</p>

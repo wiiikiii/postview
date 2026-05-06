@@ -1,0 +1,192 @@
+<% content_for :title, "API Dokumentation – Postview" %>
+
+<div class="max-w-4xl mx-auto space-y-6">
+  <!-- Header -->
+  <div class="bg-slate-800 rounded-xl p-6 text-white">
+    <div class="flex items-start justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Postview REST API</h1>
+        <p class="text-slate-400 text-sm mt-1">Version 1 &middot; Bearer Token Authentifizierung</p>
+        <div class="mt-3 flex items-center gap-2">
+          <span class="text-xs text-slate-400">Base URL:</span>
+          <code class="text-xs bg-slate-700 px-2 py-1 rounded font-mono text-sky-300"><%= @base_url %>/api/v1</code>
+        </div>
+      </div>
+      <%= link_to profile_path, class: "text-sm text-slate-400 hover:text-sky-400 transition-colors" do %>
+        Token verwalten &rarr;
+      <% end %>
+    </div>
+
+    <!-- Token input for live testing -->
+    <div class="mt-5 border-t border-slate-700 pt-5">
+      <label class="block text-xs font-medium text-slate-400 mb-2">Bearer Token (für Try-it-out)</label>
+      <div class="flex gap-2">
+        <input
+          type="password"
+          id="api-bearer-token"
+          placeholder="Ihr API-Token einfügen..."
+          class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
+        >
+        <button
+          onclick="document.getElementById('api-bearer-token').type = document.getElementById('api-bearer-token').type === 'password' ? 'text' : 'password'"
+          class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 text-sm px-3 py-2 rounded-lg transition-colors">
+          Zeigen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authentication info -->
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+    <h3 class="text-sm font-semibold text-amber-800 mb-1">Authentifizierung</h3>
+    <p class="text-sm text-amber-700">
+      Alle API-Anfragen erfordern einen gültigen Bearer Token im <code class="font-mono bg-amber-100 px-1 rounded">Authorization</code>-Header:
+    </p>
+    <code class="block mt-2 text-xs bg-amber-100 text-amber-800 px-3 py-2 rounded font-mono">
+      Authorization: Bearer &lt;Ihr-Token&gt;
+    </code>
+  </div>
+
+  <!-- Endpoints -->
+  <div class="space-y-4">
+    <h2 class="text-lg font-bold text-slate-800">Endpunkte</h2>
+
+    <!-- GET /databases -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-databases">
+      <div class="p-4 flex items-center gap-3">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
+        <code class="text-sm font-mono text-slate-700">/api/v1/databases</code>
+        <span class="text-sm text-slate-500">Alle zugänglichen Datenbanken auflisten</span>
+      </div>
+      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
+        <p class="text-xs text-slate-500 mb-3">Keine Parameter erforderlich.</p>
+        <button
+          onclick="tryEndpoint('GET', '/api/v1/databases', {}, 'resp-databases')"
+          class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
+          Try it
+        </button>
+        <pre id="resp-databases" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
+      </div>
+    </div>
+
+    <!-- GET /databases/:db/tables -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-tables">
+      <div class="p-4 flex items-center gap-3">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
+        <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables</code>
+        <span class="text-sm text-slate-500">Tabellen einer Datenbank auflisten</span>
+      </div>
+      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
+        <table class="text-xs w-full mb-3">
+          <thead><tr class="text-left text-slate-500"><th class="pb-1 pr-4">Parameter</th><th class="pb-1 pr-4">In</th><th class="pb-1 pr-4">Pflicht</th><th class="pb-1">Beschreibung</th></tr></thead>
+          <tbody class="text-slate-700">
+            <tr><td class="pr-4 font-mono py-1">db</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Datenbankname</td></tr>
+          </tbody>
+        </table>
+        <div class="flex items-center gap-2">
+          <input id="param-tables-db" type="text" placeholder="postgres" class="border border-slate-300 rounded px-2 py-1 text-xs w-40 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          <button
+            onclick="tryEndpoint('GET', '/api/v1/databases/' + document.getElementById('param-tables-db').value + '/tables', {}, 'resp-tables')"
+            class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
+            Try it
+          </button>
+        </div>
+        <pre id="resp-tables" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
+      </div>
+    </div>
+
+    <!-- GET /databases/:db/tables/:table/rows -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 flex items-center gap-3">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
+        <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables/:table/rows</code>
+        <span class="text-sm text-slate-500">Zeilen einer Tabelle abrufen (paginiert)</span>
+      </div>
+      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
+        <table class="text-xs w-full mb-3">
+          <thead><tr class="text-left text-slate-500"><th class="pb-1 pr-4">Parameter</th><th class="pb-1 pr-4">In</th><th class="pb-1 pr-4">Pflicht</th><th class="pb-1">Beschreibung</th></tr></thead>
+          <tbody class="text-slate-700">
+            <tr><td class="pr-4 font-mono py-1">db</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Datenbankname</td></tr>
+            <tr><td class="pr-4 font-mono py-1">table</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Tabellenname</td></tr>
+            <tr><td class="pr-4 font-mono py-1">page</td><td class="pr-4">query</td><td class="pr-4 text-slate-400">nein</td><td>Seitennummer (Standard: 1)</td></tr>
+            <tr><td class="pr-4 font-mono py-1">per_page</td><td class="pr-4">query</td><td class="pr-4 text-slate-400">nein</td><td>Einträge pro Seite (Standard: 25)</td></tr>
+            <tr><td class="pr-4 font-mono py-1">q</td><td class="pr-4">query</td><td class="pr-4 text-slate-400">nein</td><td>Volltextsuche (ILIKE)</td></tr>
+          </tbody>
+        </table>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input id="param-rows-db" type="text" placeholder="postgres" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          <input id="param-rows-table" type="text" placeholder="users" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          <input id="param-rows-page" type="number" placeholder="page=1" class="border border-slate-300 rounded px-2 py-1 text-xs w-20 focus:outline-none focus:ring-1 focus:ring-sky-500" value="1">
+          <input id="param-rows-q" type="text" placeholder="Suche..." class="border border-slate-300 rounded px-2 py-1 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-sky-500">
+          <button
+            onclick="(function(){
+              var db = document.getElementById('param-rows-db').value;
+              var table = document.getElementById('param-rows-table').value;
+              var page = document.getElementById('param-rows-page').value;
+              var q = document.getElementById('param-rows-q').value;
+              var params = '?page=' + page + (q ? '&q=' + encodeURIComponent(q) : '');
+              tryEndpoint('GET', '/api/v1/databases/' + db + '/tables/' + table + '/rows' + params, {}, 'resp-rows');
+            })()"
+            class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
+            Try it
+          </button>
+        </div>
+        <pre id="resp-rows" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-64 font-mono"></pre>
+      </div>
+    </div>
+
+    <!-- GET /databases/:db/tables/:table/structure -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 flex items-center gap-3">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
+        <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables/:table/structure</code>
+        <span class="text-sm text-slate-500">Tabellenstruktur (Spalten, Typen)</span>
+      </div>
+      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
+        <table class="text-xs w-full mb-3">
+          <thead><tr class="text-left text-slate-500"><th class="pb-1 pr-4">Parameter</th><th class="pb-1 pr-4">In</th><th class="pb-1 pr-4">Pflicht</th><th class="pb-1">Beschreibung</th></tr></thead>
+          <tbody class="text-slate-700">
+            <tr><td class="pr-4 font-mono py-1">db</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Datenbankname</td></tr>
+            <tr><td class="pr-4 font-mono py-1">table</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Tabellenname</td></tr>
+          </tbody>
+        </table>
+        <div class="flex items-center gap-2">
+          <input id="param-struct-db" type="text" placeholder="postgres" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          <input id="param-struct-table" type="text" placeholder="users" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          <button
+            onclick="tryEndpoint('GET', '/api/v1/databases/' + document.getElementById('param-struct-db').value + '/tables/' + document.getElementById('param-struct-table').value + '/structure', {}, 'resp-structure')"
+            class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
+            Try it
+          </button>
+        </div>
+        <pre id="resp-structure" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-64 font-mono"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function tryEndpoint(method, path, headers, responseId) {
+  var token = document.getElementById('api-bearer-token').value.trim();
+  var responseEl = document.getElementById(responseId);
+
+  responseEl.textContent = 'Lade...';
+  responseEl.classList.remove('hidden');
+
+  fetch('<%= @base_url %>' + path, {
+    method: method,
+    headers: Object.assign({
+      'Accept': 'application/json',
+      'Authorization': token ? 'Bearer ' + token : ''
+    }, headers)
+  })
+  .then(function(res) {
+    return res.json().then(function(data) {
+      responseEl.textContent = 'HTTP ' + res.status + '\n\n' + JSON.stringify(data, null, 2);
+    });
+  })
+  .catch(function(err) {
+    responseEl.textContent = 'Fehler: ' + err.message;
+  });
+}
+</script>

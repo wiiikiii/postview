@@ -21,9 +21,9 @@
 
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
     <% @databases.each do |db| %>
-      <div data-search-target="item" data-name="<%= db.datname %>">
-        <%= link_to database_path(db.datname),
-              class: "group flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-sky-300 transition-all" do %>
+      <div data-search-target="item" data-name="<%= db.datname %>"
+           class="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-sky-300 transition-all overflow-hidden">
+        <%= link_to database_path(db.datname), class: "group flex flex-col items-center gap-2 p-4" do %>
           <svg class="h-8 w-8 text-slate-400 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 2.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125m0 2.625c0 2.278 3.694 4.125 8.25 4.125s8.25-1.847 8.25-4.125" />
           </svg>
@@ -31,6 +31,22 @@
             <%= db.datname %>
           </span>
         <% end %>
+        <div class="flex border-t border-gray-100 divide-x divide-gray-100">
+          <%= link_to database_path(db.datname),
+                class: "flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-gray-500 hover:bg-sky-50 hover:text-sky-700 transition-colors" do %>
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125M3.375 4.5h17.25" />
+            </svg>
+            Tabellen
+          <% end %>
+          <%= link_to database_info_path(db.datname),
+                class: "flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-gray-500 hover:bg-violet-50 hover:text-violet-700 transition-colors" do %>
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
+            Info
+          <% end %>
+        </div>
       </div>
     <% end %>
   </div>

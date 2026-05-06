@@ -14,15 +14,17 @@ class Database < ActiveRecord::Base
 
     table_names = []
     begin
-      db_module::Connect.connection.tables.sort.each do |table|
-        const = object_classify_name(table)
-        unless db_module.const_defined?(const, false)
-          klass = Class.new(db_module::Connect)
-          db_module.const_set(const, klass)
-          klass.table_name  = table
-          klass.primary_key = nil
+      db_module::Connect.with_connection do |conn|
+        conn.tables.sort.each do |table|
+          const = object_classify_name(table)
+          unless db_module.const_defined?(const, false)
+            klass = Class.new(db_module::Connect)
+            db_module.const_set(const, klass)
+            klass.table_name  = table
+            klass.primary_key = nil
+          end
+          table_names << table
         end
-        table_names << table
       end
     rescue => e
       Rails.logger.error "tables_for(#{database_name}): #{e.message}"
@@ -30,6 +32,12 @@ class Database < ActiveRecord::Base
 
     db_module.instance_variable_set(:@table_names, table_names)
     table_names
+  end
+
+  # Returns the connection module for a database (sets up namespace if needed).
+  def self.connect(database_name)
+    ensure_namespace(database_name)
+    const_get(object_classify_name(database_name))
   end
 
   # Returns the ActiveRecord model class for a specific table.
@@ -46,7 +54,8 @@ class Database < ActiveRecord::Base
     return if const_defined?(ns)
 
     config = ActiveRecord::Base.connection_db_config.configuration_hash
-               .merge(database: database_name)
+               .except(:pool, :max_connections)
+               .merge(database: database_name, max_connections: 3, idle_timeout: 60, reaping_frequency: 10)
 
     mod = Module.new
     const_set(ns, mod)

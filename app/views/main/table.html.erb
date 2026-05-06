@@ -7,20 +7,101 @@
   <span class="text-slate-300 font-medium"><%= @table %></span>
 <% end %>
 
-<div class="max-w-full">
-  <div class="mb-4 flex items-center justify-between">
-    <div>
+<div class="max-w-full"
+     data-controller="row-dialog"
+     data-row-dialog-database-value="<%= @database %>"
+     data-row-dialog-table-value="<%= @table %>"
+     data-col-types="<%= h @col_types.to_json %>">
+  <div class="mb-4 flex items-center justify-between gap-4">
+    <div class="shrink-0">
       <h1 class="text-xl font-semibold text-gray-900"><%= @table %></h1>
       <p class="mt-0.5 text-sm text-gray-500">
-        <%= @rows.total_count %> rows &middot; page <%= @rows.current_page %> of <%= @rows.total_pages %>
+        <%= @rows.total_count %> rows
+        <% if @query.present? %><span class="text-sky-600"> &middot; Filter: &ldquo;<%= @query %>&rdquo;</span><% end %>
+        &middot; Seite <%= @rows.current_page %> von <%= @rows.total_pages %>
       </p>
     </div>
-    <%= link_to database_path(@database), class: "inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors" do %>
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-      </svg>
-      Back to tables
+
+    <%= form_with url: database_table_path(@database, @table), method: :get,
+          data: {
+            controller: "table-search",
+            turbo_action: "replace",
+            table_search_database_value: @database,
+            table_search_table_value: @table
+          },
+          class: "flex-1 max-w-lg" do |f| %>
+      <div class="flex gap-2">
+        <%# Search input %>
+        <div class="relative flex-1">
+          <svg class="pointer-events-none absolute inset-y-0 left-3 my-auto h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
+          </svg>
+          <%= f.search_field :q, value: @query,
+                placeholder: "Suchen…",
+                class: "w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm shadow-sm placeholder-gray-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400",
+                data: { action: "input->table-search#scheduleSubmit" } %>
+        </div>
+
+        <%# Column picker %>
+        <div class="relative shrink-0">
+          <button type="button"
+                  class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50 transition-colors"
+                  data-action="click->table-search#toggleDropdown">
+            <svg class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" />
+            </svg>
+            <span data-table-search-target="badge" class="text-gray-500">Alle</span>
+            <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+
+          <div class="hidden absolute right-0 top-full mt-1 z-20 w-56 rounded-xl border border-gray-200 bg-white shadow-lg"
+               data-table-search-target="dropdown">
+            <div class="p-1.5 border-b border-gray-100">
+              <label class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-gray-50">
+                <input type="checkbox" checked
+                       class="h-3.5 w-3.5 rounded accent-sky-500"
+                       data-table-search-target="allCheckbox"
+                       data-action="change->table-search#toggleAll">
+                <span class="text-xs font-semibold text-gray-600">Alle Spalten</span>
+              </label>
+            </div>
+            <div class="max-h-64 overflow-y-auto p-1.5">
+              <% @columns.each do |col| %>
+                <label class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 hover:bg-gray-50">
+                  <input type="checkbox" value="<%= col %>" checked
+                         class="h-3.5 w-3.5 rounded accent-sky-500"
+                         data-table-search-target="columnCheckbox"
+                         data-action="change->table-search#toggleColumn">
+                  <span class="font-mono text-xs text-gray-700"><%= col %></span>
+                </label>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Hidden inputs for selected columns (populated by JS) %>
+      <div data-table-search-target="hiddenInputs"></div>
     <% end %>
+
+    <div class="shrink-0 flex items-center gap-2">
+      <button type="button"
+              data-action="click->row-dialog#openNew"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 transition-colors">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Neuer Eintrag
+      </button>
+      <%= link_to database_path(@database), class: "inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors" do %>
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Tabellen
+      <% end %>
+    </div>
   </div>
 
   <% if @columns.empty? %>
@@ -41,17 +122,26 @@
           </thead>
           <tbody class="divide-y divide-gray-100">
             <% @rows.each_with_index do |row, i| %>
-              <tr class="hover:bg-sky-50 transition-colors">
+              <% row_data = @columns.each_with_object({}) { |c, h| v = row.read_attribute(c); h[c] = v.nil? ? nil : v.to_s } %>
+              <% pk_data  = @pk.each_with_object({})      { |c, h| v = row.read_attribute(c); h[c] = v.nil? ? nil : v.to_s } %>
+              <tr class="hover:bg-sky-50 hover:shadow-[inset_3px_0_0_var(--color-sky-400)] transition-all cursor-pointer"
+                  data-action="click->row-dialog#open"
+                  data-row="<%= h row_data.to_json %>"
+                  data-pk="<%= h pk_data.to_json %>">
                 <td class="px-3 py-2 text-xs text-gray-300 tabular-nums">
                   <%= (@rows.current_page - 1) * 25 + i + 1 %>
                 </td>
                 <% @columns.each do |col| %>
                   <% value = row.read_attribute(col) %>
-                  <td class="px-3 py-2 text-gray-700 max-w-xs">
+                  <td class="px-3 py-2 text-gray-700 max-w-56">
                     <% if value.nil? %>
                       <span class="text-gray-300 italic text-xs">NULL</span>
-                    <% elsif value.is_a?(String) && value.length > 100 %>
-                      <span class="font-mono text-xs" title="<%= h(value) %>"><%= truncate(value, length: 100) %></span>
+                    <% elsif value.to_s.length > 60 %>
+                      <span class="font-mono text-xs block truncate cursor-default"
+                            data-action="mouseenter->row-dialog#showTooltip mouseleave->row-dialog#hideTooltip"
+                            data-tooltip="<%= h value.to_s %>">
+                        <%= value.to_s %>
+                      </span>
                     <% else %>
                       <span class="font-mono text-xs whitespace-nowrap"><%= value %></span>
                     <% end %>
@@ -79,20 +169,20 @@
           of <%= @rows.total_count %>
         </p>
         <div class="flex items-center gap-1">
+          <% page_path = ->(p) { database_table_path(@database, @table, **@search_params, page: p) } %>
+
           <%# First page %>
           <% if @rows.first_page? %>
             <span class="px-2 py-1.5 text-sm text-gray-300 cursor-not-allowed" title="Erste Seite">&laquo;</span>
           <% else %>
-            <%= link_to database_table_path(@database, @table, page: 1),
-                  class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors",
-                  title: "Erste Seite" do %>&laquo;<% end %>
+            <%= link_to page_path.(1), class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors", title: "Erste Seite" do %>&laquo;<% end %>
           <% end %>
 
           <%# Previous page %>
           <% if @rows.first_page? %>
             <span class="px-3 py-1.5 text-sm text-gray-300 cursor-not-allowed">Previous</span>
           <% else %>
-            <%= link_to "Previous", database_table_path(@database, @table, page: @rows.current_page - 1),
+            <%= link_to "Previous", page_path.(@rows.current_page - 1),
                   class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" %>
           <% end %>
 
@@ -101,7 +191,7 @@
             <% if p == @rows.current_page %>
               <span class="px-3 py-1.5 text-sm font-medium text-white bg-sky-600 rounded-lg"><%= p %></span>
             <% else %>
-              <%= link_to p, database_table_path(@database, @table, page: p),
+              <%= link_to p, page_path.(p),
                     class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" %>
             <% end %>
           <% end %>
@@ -110,7 +200,7 @@
           <% if @rows.last_page? %>
             <span class="px-3 py-1.5 text-sm text-gray-300 cursor-not-allowed">Next</span>
           <% else %>
-            <%= link_to "Next", database_table_path(@database, @table, page: @rows.current_page + 1),
+            <%= link_to "Next", page_path.(@rows.current_page + 1),
                   class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" %>
           <% end %>
 
@@ -118,12 +208,77 @@
           <% if @rows.last_page? %>
             <span class="px-2 py-1.5 text-sm text-gray-300 cursor-not-allowed" title="Letzte Seite">&raquo;</span>
           <% else %>
-            <%= link_to database_table_path(@database, @table, page: @rows.total_pages),
-                  class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors",
-                  title: "Letzte Seite" do %>&raquo;<% end %>
+            <%= link_to page_path.(@rows.total_pages), class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors", title: "Letzte Seite" do %>&raquo;<% end %>
           <% end %>
         </div>
       </div>
     <% end %>
   <% end %>
+
+  <%# ── Row detail / edit dialog ────────────────────────────────────────── %>
+  <dialog data-row-dialog-target="dialog"
+        data-action="click->row-dialog#backdropClose"
+        class="w-full max-w-xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-2xl shadow-2xl border-0 p-0 backdrop:bg-black/50 open:flex open:flex-col">
+
+  <%# Header %>
+  <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
+    <div class="flex items-center gap-2 min-w-0">
+      <svg class="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+      </svg>
+      <span class="text-xs font-medium text-gray-400"><%= @table %></span>
+      <span class="text-gray-300">/</span>
+      <span class="text-sm font-semibold text-gray-800 truncate" data-row-dialog-target="title"></span>
+    </div>
+    <button type="button" data-action="click->row-dialog#close"
+            class="ml-4 shrink-0 text-gray-400 hover:text-gray-600 transition-colors rounded-lg p-1 hover:bg-gray-100">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+
+  <%# View mode (panel wraps body + footer so both hide/show together) %>
+  <div data-row-dialog-target="viewPanel" class="flex flex-col flex-1 min-h-0">
+    <div data-row-dialog-target="viewBody"
+         class="flex-1 overflow-y-auto px-5 py-1 max-h-[65vh]">
+    </div>
+    <div class="shrink-0 px-5 py-3 border-t border-gray-100 flex justify-end">
+      <button type="button" data-action="click->row-dialog#edit"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 transition-colors">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+        </svg>
+        Bearbeiten
+      </button>
+    </div>
+  </div>
+
+  <%# Edit mode (hidden initially) %>
+  <form method="post"
+        data-row-dialog-target="editForm"
+        class="hidden flex-col flex-1 min-h-0">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+    <input type="hidden" name="_method" value="patch">
+    <div data-row-dialog-target="pkInputs"></div>
+
+    <div data-row-dialog-target="editFields"
+         class="flex-1 overflow-y-auto px-5 py-1 max-h-[65vh]">
+    </div>
+
+    <div class="shrink-0 px-5 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
+      <button type="button" data-action="click->row-dialog#cancelEdit"
+              class="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+        Abbrechen
+      </button>
+      <button type="submit"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 transition-colors">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+        </svg>
+        Speichern
+      </button>
+    </div>
+  </form>
+  </dialog>
 </div>

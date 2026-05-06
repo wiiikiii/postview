@@ -1,0 +1,117 @@
+<% content_for :title, "#{@table} Struktur — #{@database} — Postview" %>
+
+<% content_for :breadcrumb do %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @database, database_path(@database), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @table, database_table_path(@database, @table), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <span class="text-slate-300 font-medium">Struktur</span>
+<% end %>
+
+<div class="max-w-4xl mx-auto">
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-gray-900"><%= @table %></h1>
+      <p class="mt-0.5 text-sm text-gray-500"><%= @columns.count %> Spalten &middot; <%= @indexes.count %> Indizes</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to database_table_path(@database, @table),
+            class: "inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100 transition-colors" do %>
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25M3.375 19.5a1.125 1.125 0 0 1-1.125-1.125V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125M3.375 4.5h17.25" />
+        </svg>
+        Daten
+      <% end %>
+      <%= link_to database_path(@database),
+            class: "inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors" do %>
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Tabellen
+      <% end %>
+    </div>
+  </div>
+
+  <%# Columns %>
+  <div class="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Spalten</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-100 text-sm">
+        <thead>
+          <tr class="bg-gray-50">
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Name</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Typ</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Nullable</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Default</th>
+            <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @columns.each do |col| %>
+            <% is_pk = @pk.include?(col.name) %>
+            <tr class="<%= is_pk ? 'bg-amber-50' : 'hover:bg-gray-50' %>">
+              <td class="px-4 py-2.5 font-mono text-xs font-medium text-gray-800">
+                <%= col.name %>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-sky-700"><%= col.sql_type %></td>
+              <td class="px-4 py-2.5 text-xs">
+                <% if col.null %>
+                  <span class="text-gray-400">NULL</span>
+                <% else %>
+                  <span class="font-medium text-red-500">NOT NULL</span>
+                <% end %>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500">
+                <%= col.default.present? ? col.default : '<span class="text-gray-300 italic">—</span>'.html_safe %>
+              </td>
+              <td class="px-4 py-2.5 text-xs">
+                <% if is_pk %>
+                  <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 7a5 5 0 1 1 3.61 4.804l-1.903 1.903A1 1 0 0 1 9 14H8v1a1 1 0 0 1-1 1H6v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2a1 1 0 0 1 .293-.707L7.196 10.39A5.002 5.002 0 0 1 8 7Zm5-3a.75.75 0 0 0 0 1.5A1.5 1.5 0 0 1 14.5 7 .75.75 0 0 0 16 7a3 3 0 0 0-3-3Z" clip-rule="evenodd"/></svg>
+                    PK
+                  </span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <%# Indexes %>
+  <% if @indexes.any? %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Indizes</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Name</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Spalten</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Typ</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @indexes.each do |idx| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-700"><%= idx.name %></td>
+                <td class="px-4 py-2.5 font-mono text-xs text-sky-700"><%= idx.columns.join(', ') %></td>
+                <td class="px-4 py-2.5 text-xs">
+                  <% if idx.unique %>
+                    <span class="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">UNIQUE</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+</div>

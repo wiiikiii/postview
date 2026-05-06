@@ -1,0 +1,47 @@
+<% content_for :title, "Magic Link – Postview" %>
+<% content_for :main_class, "p-0" %>
+
+<div class="min-h-screen bg-slate-900 flex items-center justify-center py-12 px-4">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <div class="flex justify-center mb-3">
+        <div class="bg-sky-500/10 p-3 rounded-2xl border border-sky-500/20">
+          <svg class="h-8 w-8 text-sky-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+          </svg>
+        </div>
+      </div>
+      <h1 class="text-2xl font-bold text-white">Magic Link</h1>
+      <p class="text-slate-400 text-sm mt-1">Passwortfreie Anmeldung per E-Mail</p>
+    </div>
+
+    <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 shadow-xl">
+      <% if flash.now[:notice] %>
+        <div class="mb-4 bg-sky-500/10 border border-sky-500/20 rounded-xl p-4">
+          <p class="text-sm text-sky-300 break-all"><%= flash.now[:notice] %></p>
+        </div>
+      <% end %>
+
+      <%= form_with url: magic_link_path, method: :post, class: "space-y-4" do |f| %>
+        <div>
+          <label for="email" class="block text-sm font-medium text-slate-300 mb-1.5">E-Mail-Adresse</label>
+          <%= f.email_field :email,
+              id: "email",
+              autofocus: true,
+              autocomplete: "email",
+              class: "w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent text-sm",
+              placeholder: "name@beispiel.de" %>
+        </div>
+
+        <%= f.submit "Magic Link senden",
+            class: "w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors cursor-pointer text-sm" %>
+      <% end %>
+
+      <div class="mt-4 pt-4 border-t border-slate-700 text-center">
+        <%= link_to login_path, class: "text-sm text-slate-400 hover:text-sky-400 transition-colors" do %>
+          Mit Passwort anmelden
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

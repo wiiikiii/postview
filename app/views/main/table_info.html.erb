@@ -1,0 +1,288 @@
+<% content_for :title, "#{@table} Info — Postview" %>
+
+<% content_for :breadcrumb do %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @database, database_path(@database), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @table, database_table_path(@database, @table), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <span class="text-slate-300 font-medium">Info</span>
+<% end %>
+
+<%
+  s            = @stats || {}
+  seq_scan     = s['seq_scan'].to_i
+  idx_scan     = s['idx_scan'].to_i
+  total_scans  = seq_scan + idx_scan
+  idx_ratio    = total_scans > 0 ? (idx_scan.to_f / total_scans * 100).round(1) : nil
+  n_live       = s['n_live_tup'].to_i
+  n_dead       = s['n_dead_tup'].to_i
+  bloat_ratio  = (n_live + n_dead) > 0 ? (n_dead.to_f / (n_live + n_dead) * 100).round(1) : nil
+%>
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+  <%# ── Header ─────────────────────────────────────────────────────── %>
+  <div class="flex items-start justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-gray-900"><%= @table %></h1>
+      <p class="mt-0.5 text-sm text-gray-500">
+        <%= s['schema_name'] %> &middot; <%= s['total_size_pretty'] %>
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to database_table_path(@database, @table),
+            class: "inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100 transition-colors" do %>
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+        </svg>
+        Daten
+      <% end %>
+      <%= link_to database_table_structure_path(@database, @table),
+            class: "inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-sm font-medium text-violet-700 hover:bg-violet-100 transition-colors" do %>
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.401.604-.401.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.959.401v0a.656.656 0 0 0 .658-.663 48.422 48.422 0 0 0-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 0 1-.61-.58v0Z" />
+        </svg>
+        Struktur
+      <% end %>
+      <%= link_to database_path(@database), class: "inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors" do %>
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Tabellen
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Übersicht + Tupel + Scans ─────────────────────────────────── %>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+    <%# Übersicht %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Übersicht</h2>
+      <% [
+           ['Schema',         s['schema_name']],
+           ['Eigentümer',     s['owner']],
+           ['Tablespace',     s['tablespace']],
+           ['Tabelle',        s['table_size_pretty']],
+           ['Indexes',        s['index_size_pretty']],
+           ['Gesamt',         s['total_size_pretty']],
+         ].each do |label, value| %>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-500"><%= label %></span>
+          <span class="font-mono text-xs text-gray-800 text-right"><%= value.presence || '—' %></span>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Live/Dead Tupel %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Tupel</h2>
+      <div class="flex flex-col items-center justify-center py-2 gap-1">
+        <span class="text-4xl font-bold text-gray-800"><%= number_with_delimiter(n_live) %></span>
+        <span class="text-xs text-gray-400">Live-Tupel (geschätzt)</span>
+      </div>
+      <% if bloat_ratio %>
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Dead-Tupel (Bloat)</span>
+            <span class="font-mono <%= bloat_ratio > 20 ? 'text-red-600' : bloat_ratio > 5 ? 'text-amber-500' : 'text-green-600' %>"><%= bloat_ratio %>%</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-1.5">
+            <div class="h-1.5 rounded-full <%= bloat_ratio > 20 ? 'bg-red-400' : bloat_ratio > 5 ? 'bg-amber-400' : 'bg-green-400' %>"
+                 style="width: <%= [bloat_ratio, 100].min %>%"></div>
+          </div>
+        </div>
+      <% end %>
+      <div class="space-y-1.5 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-500">Dead</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(n_dead) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Eingefügt</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(s['n_tup_ins'].to_i) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Aktualisiert</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(s['n_tup_upd'].to_i) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Gelöscht</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(s['n_tup_del'].to_i) %></span>
+        </div>
+      </div>
+    </div>
+
+    <%# Scan-Effizienz %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Scan-Effizienz</h2>
+      <% if idx_ratio %>
+        <div class="flex flex-col items-center justify-center py-2 gap-1">
+          <span class="text-4xl font-bold <%= idx_ratio >= 90 ? 'text-green-600' : idx_ratio >= 60 ? 'text-amber-500' : 'text-red-500' %>">
+            <%= idx_ratio %>%
+          </span>
+          <span class="text-xs text-gray-400">Index-Scans</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-1.5">
+          <div class="h-1.5 rounded-full <%= idx_ratio >= 90 ? 'bg-green-500' : idx_ratio >= 60 ? 'bg-amber-400' : 'bg-red-400' %>"
+               style="width: <%= idx_ratio %>%"></div>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-400 text-center py-4">Keine Scans</p>
+      <% end %>
+      <div class="space-y-1.5 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-500">Seq-Scans</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(seq_scan) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Idx-Scans</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(idx_scan) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Seq gelesen</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(s['seq_tup_read'].to_i) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Idx abgerufen</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(s['idx_tup_fetch'].to_i) %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Vacuum / Analyze ───────────────────────────────────────────── %>
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Vacuum &amp; Analyze</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+      <% [
+           ['Letzter Vacuum',         s['last_vacuum']],
+           ['Letzter Auto-Vacuum',    s['last_autovacuum']],
+           ['Letzter Analyze',        s['last_analyze']],
+           ['Letzter Auto-Analyze',   s['last_autoanalyze']],
+           ['Vacuum-Zähler',          s['vacuum_count']],
+           ['Auto-Vacuum-Zähler',     s['autovacuum_count']],
+           ['Analyze-Zähler',         s['analyze_count']],
+           ['Auto-Analyze-Zähler',    s['autoanalyze_count']],
+         ].each do |label, value| %>
+        <div class="text-sm">
+          <span class="block text-gray-400 text-xs"><%= label %></span>
+          <span class="font-mono text-xs text-gray-800">
+            <%= value.present? ? (value.to_s.match?(/^\d+$/) ? number_with_delimiter(value.to_i) : Time.parse(value.to_s).strftime('%d.%m.%Y %H:%M') rescue value) : '—' %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Indexes ─────────────────────────────────────────────────────── %>
+  <% if @indexes.present? %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Indexes (<%= @indexes.size %>)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Name</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Spalten</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Typ</th>
+              <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-400 tracking-wide">Grösse</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @indexes.each do |idx| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-800"><%= idx['index_name'] %></td>
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-600"><%= idx['columns'] %></td>
+                <td class="px-4 py-2.5 text-xs">
+                  <% if idx['primary'] == 't' || idx['primary'] == true %>
+                    <span class="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">PRIMARY</span>
+                  <% elsif idx['unique'] == 't' || idx['unique'] == true %>
+                    <span class="inline-flex rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">UNIQUE</span>
+                  <% else %>
+                    <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">INDEX</span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-2.5 font-mono text-xs text-right text-gray-600"><%= idx['size'] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Fremdschlüssel ─────────────────────────────────────────────── %>
+  <% if @foreign_keys.present? %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Fremdschlüssel (<%= @foreign_keys.size %>)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Spalte</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Referenz-Tabelle</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Referenz-Spalte</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">ON UPDATE</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">ON DELETE</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @foreign_keys.each do |fk| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2.5 font-mono text-xs font-medium text-gray-800"><%= fk['column_name'] %></td>
+                <td class="px-4 py-2.5 font-mono text-xs text-sky-700">
+                  <%= link_to fk['foreign_table'], database_table_path(@database, fk['foreign_table']), class: "hover:underline" %>
+                </td>
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-600"><%= fk['foreign_column'] %></td>
+                <td class="px-4 py-2.5 text-xs text-gray-500"><%= fk['update_rule'] %></td>
+                <td class="px-4 py-2.5 text-xs text-gray-500"><%= fk['delete_rule'] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Referenziert von ───────────────────────────────────────────── %>
+  <% if @referenced_by.present? %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Referenziert von (<%= @referenced_by.size %>)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Von Tabelle</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Von Spalte</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Zu Spalte</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">ON UPDATE</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">ON DELETE</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @referenced_by.each do |ref| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2.5 font-mono text-xs font-medium text-sky-700">
+                  <%= link_to ref['from_table'], database_table_path(@database, ref['from_table']), class: "hover:underline" %>
+                </td>
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-800"><%= ref['from_column'] %></td>
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-600"><%= ref['to_column'] %></td>
+                <td class="px-4 py-2.5 text-xs text-gray-500"><%= ref['update_rule'] %></td>
+                <td class="px-4 py-2.5 text-xs text-gray-500"><%= ref['delete_rule'] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+</div>

@@ -1,0 +1,237 @@
+<% content_for :title, "#{@database} Info — Postview" %>
+
+<% content_for :breadcrumb do %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @database, database_path(@database), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <span class="text-slate-300 font-medium">Info</span>
+<% end %>
+
+<%
+  stats       = @stats || {}
+  blks_hit    = stats['blks_hit'].to_i
+  blks_read   = stats['blks_read'].to_i
+  cache_total = blks_hit + blks_read
+  cache_rate  = cache_total > 0 ? (blks_hit.to_f / cache_total * 100).round(1) : nil
+%>
+
+<div class="max-w-5xl mx-auto space-y-6">
+
+  <%# ── Header ─────────────────────────────────────────────────────── %>
+  <div class="flex items-start justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-gray-900"><%= @database %></h1>
+      <p class="mt-0.5 text-sm text-gray-500">
+        <%= @info['size_pretty'] %> &middot; OID <%= @info['oid'] %>
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to database_path(@database),
+            class: "inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100 transition-colors" do %>
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125M3.375 4.5h17.25" />
+        </svg>
+        Tabellen
+      <% end %>
+      <%= link_to root_path, class: "inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors" do %>
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Datenbanken
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Übersicht + Verbindungen + Cache ───────────────────────────── %>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+    <%# Übersicht %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Übersicht</h2>
+      <% [
+           ['Eigentümer',    @info['owner']],
+           ['Encoding',      @info['encoding']],
+           ['Collation',     @info['datcollate']],
+           ['Ctype',         @info['datctype']],
+           ['Tablespace',    @info['tablespace']],
+           ['Grösse',        @info['size_pretty']],
+         ].each do |label, value| %>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-500"><%= label %></span>
+          <span class="font-mono text-xs text-gray-800 text-right"><%= value.presence || '—' %></span>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Verbindungen %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Verbindungen</h2>
+      <% conn_limit = @info['datconnlimit'].to_i; conn_limit = @max_connections if conn_limit < 0 %>
+      <div class="flex flex-col items-center justify-center py-2 gap-1">
+        <span class="text-4xl font-bold text-gray-800"><%= @connections['total'] %></span>
+        <span class="text-xs text-gray-400">aktive Backend-Prozesse</span>
+      </div>
+      <div class="space-y-1.5 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-500">Aktiv (query)</span>
+          <span class="font-mono text-xs text-sky-700"><%= @connections['active'] %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Backends gesamt</span>
+          <span class="font-mono text-xs text-gray-800"><%= stats['numbackends'] || '—' %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Limit (DB)</span>
+          <span class="font-mono text-xs text-gray-800"><%= conn_limit %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">max_connections</span>
+          <span class="font-mono text-xs text-gray-800"><%= @max_connections %></span>
+        </div>
+      </div>
+    </div>
+
+    <%# Buffer Cache %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Buffer Cache</h2>
+      <% if cache_rate %>
+        <div class="flex flex-col items-center justify-center py-2 gap-1">
+          <span class="text-4xl font-bold <%= cache_rate >= 99 ? 'text-green-600' : cache_rate >= 95 ? 'text-amber-500' : 'text-red-500' %>">
+            <%= cache_rate %>%
+          </span>
+          <span class="text-xs text-gray-400">Hit-Rate</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-1.5">
+          <div class="h-1.5 rounded-full <%= cache_rate >= 99 ? 'bg-green-500' : cache_rate >= 95 ? 'bg-amber-400' : 'bg-red-400' %>"
+               style="width: <%= cache_rate %>%"></div>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-400 text-center py-4">Keine Daten</p>
+      <% end %>
+      <div class="space-y-1.5 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-500">Hits</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(blks_hit) %></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Disk-Reads</span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(blks_read) %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Transaktionen + Tupel ──────────────────────────────────────── %>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Transaktionen</h2>
+      <% [
+           ['Commits',      stats['xact_commit']],
+           ['Rollbacks',    stats['xact_rollback']],
+           ['Konflikte',    stats['conflicts']],
+           ['Deadlocks',    stats['deadlocks']],
+           ['Temp-Dateien', stats['temp_files']],
+           ['Temp-Grösse',  stats['temp_bytes'].to_i > 0 ? number_to_human_size(stats['temp_bytes'].to_i) : '0'],
+           ['Stats reset',  stats['stats_reset'] ? Time.parse(stats['stats_reset'].to_s).strftime('%d.%m.%Y %H:%M') : '—'],
+         ].each do |label, value| %>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-500"><%= label %></span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(value.to_s) rescue (value || '—') %></span>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Tupel</h2>
+      <% [
+           ['Gelesen (seq)',  stats['tup_returned']],
+           ['Gelesen (idx)',  stats['tup_fetched']],
+           ['Eingefügt',      stats['tup_inserted']],
+           ['Aktualisiert',   stats['tup_updated']],
+           ['Gelöscht',       stats['tup_deleted']],
+         ].each do |label, value| %>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-500"><%= label %></span>
+          <span class="font-mono text-xs text-gray-800"><%= number_with_delimiter(value.to_i) %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Schemas ─────────────────────────────────────────────────────── %>
+  <% if @schemas.present? %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Schemas (<%= @schemas.size %>)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <% [['Name', ''], ['Eigentümer', ''], ['Tabellen', 'text-right'], ['Views', 'text-right'], ['Sequences', 'text-right'], ['Foreign Tables', 'text-right']].each do |h, cls| %>
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide <%= cls %>"><%= h %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @schemas.each do |s| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2.5 font-mono text-xs font-medium text-gray-800"><%= s['name'] %></td>
+                <td class="px-4 py-2.5 text-xs text-gray-500"><%= s['owner'] %></td>
+                <td class="px-4 py-2.5 text-xs text-right font-mono text-gray-700"><%= s['tables'] %></td>
+                <td class="px-4 py-2.5 text-xs text-right font-mono text-gray-700"><%= s['views'] %></td>
+                <td class="px-4 py-2.5 text-xs text-right font-mono text-gray-700"><%= s['sequences'] %></td>
+                <td class="px-4 py-2.5 text-xs text-right font-mono text-gray-700"><%= s['foreign_tables'] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Berechtigungen ─────────────────────────────────────────────── %>
+  <% if @acl.present? %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Berechtigungen (ACL)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Rolle</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Berechtigung</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Gewährt von</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-400 tracking-wide">Weitergabe</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @acl.each do |row| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2.5 font-mono text-xs font-medium text-gray-800">
+                  <% if row['grantee'] == 'PUBLIC' %>
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">PUBLIC</span>
+                  <% else %>
+                    <%= row['grantee'] %>
+                  <% end %>
+                </td>
+                <td class="px-4 py-2.5 text-xs">
+                  <span class="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                    <%= row['privilege_type'] %>
+                  </span>
+                </td>
+                <td class="px-4 py-2.5 font-mono text-xs text-gray-500"><%= row['grantor'] %></td>
+                <td class="px-4 py-2.5 text-xs text-gray-500">
+                  <%= row['is_grantable'] == 't' ? '✓' : '—' %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+</div>
