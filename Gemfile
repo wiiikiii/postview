@@ -13,6 +13,7 @@ gem "bcrypt", "~> 3.1.7"
 
 gem "rotp"
 gem "rqrcode"
+gem 'csv'
 
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 

@@ -3,11 +3,23 @@ Rails.application.routes.draw do
 
   get "/databases/:id/info"             => "main#database_info",    as: :database_info
   get "/databases/:id"                  => "main#database",         as: :database
-  get   "/databases/:db/:table/structure" => "main#structure",    as: :database_table_structure
-  get   "/databases/:db/:table/info"     => "main#table_info",  as: :database_table_info
-  post  "/databases/:db/:table/rows"     => "main#create_row",  as: :create_table_row
-  patch "/databases/:db/:table/rows"     => "main#update_row",  as: :update_table_row
-  get   "/databases/:db/:table"          => "main#table",       as: :database_table
+  get    "/databases/:db/:table/structure"         => "main#structure",   as: :database_table_structure
+  get    "/databases/:db/:table/info"             => "main#table_info",  as: :database_table_info
+  post   "/databases/:db/:table/rows"             => "main#create_row",  as: :create_table_row
+  patch  "/databases/:db/:table/rows"             => "main#update_row",  as: :update_table_row
+  delete "/databases/:db/:table/rows"             => "main#delete_row",  as: :delete_table_row
+  get    "/databases/:db/:table/trash"            => "main#trash",       as: :database_table_trash
+  post   "/databases/:db/:table/trash/:id/restore" => "main#restore_row", as: :restore_table_row
+  delete "/databases/:db/:table/trash/:id"        => "main#purge_row",   as: :purge_table_row
+  get    "/databases/:db/query"                        => "main#query_console", as: :database_query
+  post   "/databases/:db/query"                        => "main#execute_query"
+  post   "/databases/:db/query/export"                 => "main#export_query",  as: :export_query
+  get    "/databases/:db/query/schema/:table"          => "main#query_schema",  as: :database_query_schema
+
+  get    "/databases/:db/:table"                  => "main#table",       as: :database_table
+
+  get   "/preferences", to: "preferences#show"
+  patch "/preferences", to: "preferences#update"
 
   root "main#index"
 
@@ -39,10 +51,15 @@ Rails.application.routes.draw do
   namespace :api do
     get "/docs", to: "docs#show", as: :docs
     namespace :v1 do
-      get "/databases",                             to: "databases#index"
-      get "/databases/:db/tables",                  to: "tables#index",     as: :db_tables
-      get "/databases/:db/tables/:table/rows",      to: "tables#rows",      as: :db_table_rows
-      get "/databases/:db/tables/:table/structure", to: "tables#structure", as: :db_table_structure
+      get    "/databases",                               to: "databases#index"
+      get    "/databases/:db",                           to: "databases#show",      as: :db
+      get    "/databases/:db/tables",                    to: "tables#index",        as: :db_tables
+      get    "/databases/:db/tables/:table/rows",        to: "tables#rows",         as: :db_table_rows
+      post   "/databases/:db/tables/:table/rows",        to: "tables#create_row"
+      patch  "/databases/:db/tables/:table/rows",        to: "tables#update_row"
+      delete "/databases/:db/tables/:table/rows",        to: "tables#delete_row"
+      get    "/databases/:db/tables/:table/structure",   to: "tables#structure",    as: :db_table_structure
+      get    "/databases/:db/tables/:table/info",        to: "tables#info"
     end
   end
 end

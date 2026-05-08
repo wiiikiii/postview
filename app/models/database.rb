@@ -15,13 +15,30 @@ class Database < ActiveRecord::Base
     table_names = []
     begin
       db_module::Connect.with_connection do |conn|
+        pk_map = {}
+        conn.execute(<<~SQL).each { |r| (pk_map[r["table_name"]] ||= []) << r["column_name"] }
+          SELECT tc.table_name, kcu.column_name
+          FROM   information_schema.table_constraints tc
+          JOIN   information_schema.key_column_usage kcu
+                 ON  tc.constraint_name = kcu.constraint_name
+                 AND tc.table_schema    = kcu.table_schema
+          WHERE  tc.constraint_type = 'PRIMARY KEY'
+            AND  tc.table_schema    = ANY(current_schemas(false))
+          ORDER BY tc.table_name, kcu.ordinal_position
+        SQL
+
         conn.tables.sort.each do |table|
           const = object_classify_name(table)
           unless db_module.const_defined?(const, false)
             klass = Class.new(db_module::Connect)
             db_module.const_set(const, klass)
             klass.table_name  = table
-            klass.primary_key = nil
+            pk_cols = pk_map[table] || []
+            klass.primary_key = case pk_cols.length
+                                when 0 then nil
+                                when 1 then pk_cols.first
+                                else        pk_cols
+                                end
           end
           table_names << table
         end

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { prefGet, prefSet } from "lib/prefs"
 
 export default class extends Controller {
   static targets = ["dropdown", "allCheckbox", "columnCheckbox", "hiddenInputs", "badge"]
@@ -8,7 +9,8 @@ export default class extends Controller {
     debounce: { type: Number, default: 300 }
   }
 
-  #timer = null
+  #timer     = null
+  #saveTimer = null
   #outsideClick = (e) => { if (!this.element.contains(e.target)) this.#closeDropdown() }
 
   connect() {
@@ -18,6 +20,7 @@ export default class extends Controller {
 
   disconnect() {
     document.removeEventListener("click", this.#outsideClick)
+    clearTimeout(this.#saveTimer)
   }
 
   scheduleSubmit() {
@@ -70,7 +73,7 @@ export default class extends Controller {
   }
 
   #updateBadge() {
-    const total = this.columnCheckboxTargets.length
+    const total   = this.columnCheckboxTargets.length
     const checked = this.columnCheckboxTargets.filter(cb => cb.checked).length
 
     if (this.hasBadgeTarget) {
@@ -82,15 +85,16 @@ export default class extends Controller {
 
   #saveSettings() {
     const selected = this.columnCheckboxTargets.filter(cb => cb.checked).map(cb => cb.value)
-    localStorage.setItem(this.#key, JSON.stringify(selected))
+    clearTimeout(this.#saveTimer)
+    this.#saveTimer = setTimeout(() => prefSet(this.#prefKey, selected), 600)
   }
 
-  #loadSettings() {
+  async #loadSettings() {
     try {
-      const raw = localStorage.getItem(this.#key)
-      if (!raw) return
+      const value = await prefGet(this.#prefKey)
+      if (!Array.isArray(value)) return
 
-      const selected = new Set(JSON.parse(raw))
+      const selected = new Set(value)
       this.columnCheckboxTargets.forEach(cb => { cb.checked = selected.has(cb.value) })
       const all = this.columnCheckboxTargets.every(cb => cb.checked)
       const any = this.columnCheckboxTargets.some(cb => cb.checked)
@@ -102,7 +106,7 @@ export default class extends Controller {
     } catch (_) {}
   }
 
-  get #key() {
-    return `postview:${this.databaseValue}:${this.tableValue}:columns`
+  get #prefKey() {
+    return `cols:${this.databaseValue}:${this.tableValue}`
   }
 }

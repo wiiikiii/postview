@@ -1,0 +1,251 @@
+<% content_for :title, "Papierkorb – #{@table} — #{@database} — Postview" %>
+
+<% content_for :breadcrumb do %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @database, database_path(@database), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @table, database_table_path(@database, @table), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <span class="text-slate-300 font-medium">Papierkorb</span>
+<% end %>
+
+<div class="max-w-full">
+  <%# ── Header ─────────────────────────────────────────────────────────────── %>
+  <div class="mb-4 flex items-center justify-between gap-4">
+    <div class="shrink-0">
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+        </svg>
+        <h1 class="text-xl font-semibold text-gray-900">Papierkorb</h1>
+        <span class="text-gray-400 font-normal text-sm">— <%= @table %></span>
+        <% if @deleted_rows.total_count > 0 %>
+          <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+            <%= @deleted_rows.total_count %>
+          </span>
+        <% end %>
+      </div>
+      <p class="mt-0.5 text-sm text-gray-500">
+        Gelöschte Zeilen aus <span class="font-medium"><%= @database %></span>.<span class="font-medium"><%= @table %></span>
+        <% if @query.present? %><span class="text-sky-600"> &middot; Filter: &ldquo;<%= @query %>&rdquo;</span><% end %>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <%# Search %>
+      <%= form_with url: database_table_trash_path(@database, @table), method: :get,
+            data: { turbo_action: "replace" }, class: "w-72" do |f| %>
+        <div class="relative">
+          <svg class="pointer-events-none absolute inset-y-0 left-3 my-auto h-4 w-4 text-gray-400"
+               fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
+          </svg>
+          <%= f.search_field :q, value: @query,
+                placeholder: "In gelöschten Zeilen suchen…",
+                class: "w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm shadow-sm placeholder-gray-400 focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400" %>
+        </div>
+      <% end %>
+
+      <%= link_to database_table_path(@database, @table),
+            class: "inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors" do %>
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Zurück zur Tabelle
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Table ──────────────────────────────────────────────────────────────── %>
+  <% if @deleted_rows.empty? %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm py-20 text-center">
+      <svg class="mx-auto h-10 w-10 text-gray-200" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+      </svg>
+      <p class="mt-3 text-sm font-medium text-gray-500">
+        <% if @query.present? %>
+          Keine Ergebnisse für &ldquo;<%= @query %>&rdquo;
+        <% else %>
+          Papierkorb ist leer
+        <% end %>
+      </p>
+      <% if @query.present? %>
+        <p class="mt-1 text-xs text-gray-400">
+          <%= link_to "Suche zurücksetzen", database_table_trash_path(@database, @table),
+                class: "text-sky-500 hover:underline" %>
+        </p>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 whitespace-nowrap">Gelöscht</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 whitespace-nowrap">Von</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 whitespace-nowrap">PK</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Daten</th>
+              <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500 whitespace-nowrap">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @deleted_rows.each do |dr| %>
+              <tr class="hover:bg-gray-50 group" data-deleted-id="<%= dr.id %>">
+
+                <%# Timestamp %>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-xs text-gray-700 font-medium tabular-nums">
+                    <%= dr.created_at.strftime("%d.%m.%Y") %>
+                  </span>
+                  <br>
+                  <span class="text-xs text-gray-400 tabular-nums">
+                    <%= dr.created_at.strftime("%H:%M:%S") %>
+                  </span>
+                </td>
+
+                <%# User %>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-xs font-medium text-gray-700"><%= dr.user.username %></span>
+                </td>
+
+                <%# PK %>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <% dr.pk_data.each do |col, val| %>
+                    <div class="font-mono text-xs">
+                      <span class="text-gray-400"><%= col %>=</span><span class="text-gray-800"><%= val %></span>
+                    </div>
+                  <% end %>
+                </td>
+
+                <%# Row data summary — first 5 non-pk columns %>
+                <td class="px-4 py-3 max-w-xs">
+                  <% pk_keys = dr.pk_data.keys
+                     preview_pairs = dr.row_data.reject { |k, _| pk_keys.include?(k) }.first(5) %>
+                  <div class="flex flex-wrap gap-x-3 gap-y-0.5">
+                    <% preview_pairs.each do |col, val| %>
+                      <span class="font-mono text-xs text-gray-500">
+                        <span class="text-gray-400"><%= col %>=</span><%=
+                          if val.nil?
+                            content_tag(:span, "NULL", class: "italic text-gray-300")
+                          else
+                            truncate(val.to_s, length: 40)
+                          end
+                        %>
+                      </span>
+                    <% end %>
+                    <% if dr.row_data.size - pk_keys.size > 5 %>
+                      <span class="text-xs text-gray-400">+<%= dr.row_data.size - pk_keys.size - 5 %> weitere</span>
+                    <% end %>
+                  </div>
+                </td>
+
+                <%# Actions %>
+                <td class="px-4 py-3 whitespace-nowrap text-right">
+                  <div class="flex items-center justify-end gap-2">
+
+                    <%# Detail toggle %>
+                    <button type="button"
+                            class="text-xs text-gray-400 hover:text-gray-600 transition-colors rounded px-1.5 py-1 hover:bg-gray-100"
+                            onclick="toggleTrashDetail(<%= dr.id %>)"
+                            title="Details anzeigen">
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.641 0-8.58-3.007-9.964-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                      </svg>
+                    </button>
+
+                    <%# Restore %>
+                    <%= button_to restore_table_row_path(@database, @table, dr),
+                          method: :post,
+                          form: { data: { turbo_confirm: "Zeile \"#{dr.pk_label}\" wiederherstellen?" } },
+                          class: "inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors",
+                          title: "Wiederherstellen" do %>
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                      </svg>
+                      Wiederherstellen
+                    <% end %>
+
+                    <%# Permanent delete %>
+                    <%= button_to purge_table_row_path(@database, @table, dr),
+                          method: :delete,
+                          form: { data: { turbo_confirm: "Zeile \"#{dr.pk_label}\" endgültig löschen? Diese Aktion ist unwiderruflich." } },
+                          class: "inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors",
+                          title: "Endgültig löschen" do %>
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                      Löschen
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+
+              <%# Detail expansion row (hidden) %>
+              <tr id="trash-detail-<%= dr.id %>" class="hidden bg-slate-50">
+                <td colspan="5" class="px-6 py-4">
+                  <p class="text-xs font-semibold text-gray-500 mb-3">Vollständige Zeilendaten</p>
+                  <dl class="grid grid-cols-2 gap-x-8 gap-y-1 sm:grid-cols-3 lg:grid-cols-4">
+                    <% dr.row_data.each do |col, val| %>
+                      <div class="flex flex-col gap-0.5 py-1 border-b border-gray-100 last:border-0">
+                        <dt class="text-xs font-medium text-gray-400 truncate"><%= col %></dt>
+                        <dd class="font-mono text-xs text-gray-800 break-all">
+                          <% if val.nil? %>
+                            <span class="italic text-gray-300">NULL</span>
+                          <% else %>
+                            <%= val %>
+                          <% end %>
+                        </dd>
+                      </div>
+                    <% end %>
+                  </dl>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <%# ── Pagination ────────────────────────────────────────────────────────── %>
+    <% if @deleted_rows.total_pages > 1 %>
+      <div class="mt-4 flex items-center justify-between">
+        <p class="text-sm text-gray-500">
+          <%= @deleted_rows.total_count %> Einträge
+        </p>
+        <div class="flex items-center gap-1">
+          <% page_path = ->(p) { database_table_trash_path(@database, @table, q: @query.presence, page: p) } %>
+
+          <% if @deleted_rows.first_page? %>
+            <span class="px-2 py-1.5 text-sm text-gray-300 cursor-not-allowed">&laquo;</span>
+          <% else %>
+            <%= link_to page_path.(1), class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" do %>&laquo;<% end %>
+          <% end %>
+
+          <% (@deleted_rows.current_page - 2 .. @deleted_rows.current_page + 2).each do |p| %>
+            <% next if p < 1 || p > @deleted_rows.total_pages %>
+            <% if p == @deleted_rows.current_page %>
+              <span class="px-3 py-1.5 text-sm font-medium text-white bg-sky-600 rounded-lg"><%= p %></span>
+            <% else %>
+              <%= link_to p, page_path.(p), class: "px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" %>
+            <% end %>
+          <% end %>
+
+          <% if @deleted_rows.last_page? %>
+            <span class="px-2 py-1.5 text-sm text-gray-300 cursor-not-allowed">&raquo;</span>
+          <% else %>
+            <%= link_to page_path.(@deleted_rows.total_pages), class: "px-2 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" do %>&raquo;<% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<script>
+function toggleTrashDetail(id) {
+  var row = document.getElementById('trash-detail-' + id);
+  if (row) row.classList.toggle('hidden');
+}
+</script>

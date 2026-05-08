@@ -8,6 +8,7 @@
     <meta name="turbo-prefetch" content="false">
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <%= yield :head %>
   </head>
 
   <body class="h-full">

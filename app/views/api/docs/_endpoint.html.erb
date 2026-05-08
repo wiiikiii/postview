@@ -1,0 +1,84 @@
+<% method_badge = ->(m) {
+  colors = { "GET" => "bg-green-100 text-green-700", "POST" => "bg-sky-100 text-sky-700",
+             "PATCH" => "bg-amber-100 text-amber-700", "DELETE" => "bg-red-100 text-red-700" }
+  %(<span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold font-mono #{colors[m]}">#{m}</span>).html_safe
+} %>
+
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-<%= id %>">
+  <div class="p-4 flex items-start gap-3">
+    <%= method_badge.(method) %>
+    <div class="min-w-0">
+      <code class="text-sm font-mono text-slate-700"><%= path %></code>
+      <p class="text-sm text-slate-500 mt-0.5"><%= summary %></p>
+    </div>
+  </div>
+
+  <% if params.any? || response_example.present? || try_js.present? %>
+    <div class="border-t border-slate-100 px-4 py-3 bg-slate-50 space-y-3">
+
+      <% if params.any? %>
+        <p class="text-xs text-slate-600 font-semibold">Parameter</p>
+        <table class="min-w-full text-xs divide-y divide-slate-100 bg-white rounded-lg overflow-hidden border border-slate-100">
+          <thead>
+            <tr class="bg-slate-50">
+              <th class="px-3 py-1.5 text-left text-slate-500 font-medium">Name</th>
+              <th class="px-3 py-1.5 text-left text-slate-500 font-medium">In</th>
+              <th class="px-3 py-1.5 text-left text-slate-500 font-medium">Pflicht</th>
+              <th class="px-3 py-1.5 text-left text-slate-500 font-medium">Beschreibung</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <% params.each do |name, location, required, description| %>
+              <tr>
+                <td class="px-3 py-1.5 font-mono text-slate-700"><%= name %></td>
+                <td class="px-3 py-1.5 text-slate-500"><%= location %></td>
+                <td class="px-3 py-1.5">
+                  <% if required %>
+                    <span class="inline-block bg-rose-100 text-rose-700 rounded px-1.5 py-0.5 text-xs font-medium">ja</span>
+                  <% else %>
+                    <span class="inline-block bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 text-xs">nein</span>
+                  <% end %>
+                </td>
+                <td class="px-3 py-1.5 text-slate-500"><%= description %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+
+      <% if response_example.present? %>
+        <p class="text-xs text-slate-600 font-semibold">Response <span class="font-normal text-slate-400">200 OK</span></p>
+        <pre class="bg-slate-800 text-green-300 text-xs p-3 rounded-lg font-mono overflow-auto"><%= response_example %></pre>
+      <% end %>
+
+      <% if try_js.present? %>
+        <% fields = local_assigns[:try_fields] || [] %>
+        <div class="pt-1">
+          <p class="text-xs font-medium text-slate-500 mb-2">Try it</p>
+          <% if fields.any? %>
+            <div class="flex gap-2 flex-wrap items-end">
+              <% fields.each do |fid, label, placeholder| %>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1"><%= label %></label>
+                  <input id="<%= fid %>" type="text" placeholder="<%= placeholder %>"
+                         class="border border-slate-300 rounded px-2 py-1 text-xs w-28 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+                </div>
+              <% end %>
+              <button onclick="<%= try_js %>"
+                      class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors self-end">
+                Send
+              </button>
+            </div>
+          <% else %>
+            <button onclick="<%= try_js %>"
+                    class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
+              Try it
+            </button>
+          <% end %>
+          <pre id="<%= resp_id %>" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
+        </div>
+      <% end %>
+
+    </div>
+  <% end %>
+</div>

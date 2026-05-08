@@ -1,3 +1,5 @@
+require "csv"
+
 class MainController < ApplicationController
   def index
     @databases = Database.all.order(:datname)
@@ -6,6 +8,15 @@ class MainController < ApplicationController
   def database
     @database = params[:id]
     @tables   = Database.tables_for(@database)
+
+    mod = Database.connect(@database)
+    mod::Connect.with_connection do |conn|
+      @row_counts = conn.execute(<<~SQL).to_a.to_h { |r| [r["relname"], r["n_live_tup"].to_i] }
+        SELECT relname, n_live_tup FROM pg_stat_user_tables
+      SQL
+    end
+  rescue StandardError
+    @row_counts = {}
   end
 
   def database_info
@@ -186,6 +197,7 @@ class MainController < ApplicationController
     @pk          = Array(model.primary_key)
     @col_types   = model.columns.map { |c| [c.name, c.sql_type] }.to_h
     @rows        = filtered(model).page(params[:page]).per(25)
+    @trash_count = DeletedRow.active.for_table(@database, @table).count
     @search_params = build_search_params
   rescue NameError
     redirect_to database_path(@database), alert: 'Table not found.'
@@ -214,6 +226,161 @@ class MainController < ApplicationController
   rescue => e
     redirect_back fallback_location: database_table_path(@database, @table),
                   alert: "Fehler: #{e.message.split("\n").first}"
+  end
+
+  def delete_row
+    @database = params[:db]
+    @table    = params[:table]
+    model     = Database.model_for(@database, @table)
+
+    pk_vals = params[:pk]&.to_unsafe_h
+    return json_or_redirect("PK fehlt", :bad_request) if pk_vals.blank?
+
+    scope = model.all
+    pk_vals.each { |col, val| scope = scope.where(col => val) }
+    record = scope.first
+    return json_or_redirect("Zeile nicht gefunden", :not_found) unless record
+
+    row_data = model.column_names.index_with { |c| record.read_attribute(c) }
+    DeletedRow.create!(user: current_user, db_name: @database, table_name: @table,
+                       pk_data: pk_vals, row_data: row_data)
+    record.destroy!
+    respond_to do |format|
+      format.json { render json: { deleted: true } }
+      format.html { redirect_back fallback_location: database_table_path(@database, @table), notice: 'Zeile in den Papierkorb verschoben.' }
+    end
+  rescue => e
+    respond_to do |format|
+      format.json { render json: { error: e.message.split("\n").first }, status: :unprocessable_entity }
+      format.html { redirect_back fallback_location: database_table_path(@database, @table), alert: "Fehler: #{e.message.split("\n").first}" }
+    end
+  end
+
+  def trash
+    @database = params[:db]
+    @table    = params[:table]
+    @query    = params[:q].to_s.strip
+
+    scope = DeletedRow.active.for_table(@database, @table)
+                      .includes(:user).order(created_at: :desc)
+    if @query.present?
+      like = "%#{ActiveRecord::Base.sanitize_sql_like(@query)}%"
+      scope = scope.where("row_data::text ILIKE :q OR pk_data::text ILIKE :q", q: like)
+    end
+    @deleted_rows = scope.page(params[:page]).per(25)
+  end
+
+  def restore_row
+    @database = params[:db]
+    @table    = params[:table]
+    deleted   = DeletedRow.active.for_table(@database, @table).find(params[:id])
+    model     = Database.model_for(@database, @table)
+
+    attrs = deleted.row_data.select { |col, _| model.column_names.include?(col) }
+    model.create!(attrs)
+    deleted.update!(restored_at: Time.current)
+
+    redirect_to database_table_path(@database, @table),
+                notice: "Zeile wiederhergestellt (#{deleted.pk_label})."
+  rescue ActiveRecord::RecordNotFound
+    redirect_to database_table_trash_path(@database, @table), alert: 'Eintrag nicht gefunden.'
+  rescue => e
+    redirect_to database_table_trash_path(@database, @table),
+                alert: "Fehler beim Wiederherstellen: #{e.message.split("\n").first}"
+  end
+
+  def purge_row
+    @database = params[:db]
+    @table    = params[:table]
+    deleted   = DeletedRow.for_table(@database, @table).find(params[:id])
+    deleted.destroy!
+    redirect_to database_table_trash_path(@database, @table),
+                notice: 'Eintrag endgültig gelöscht.'
+  rescue ActiveRecord::RecordNotFound
+    redirect_to database_table_trash_path(@database, @table), alert: 'Eintrag nicht gefunden.'
+  end
+
+  def query_console
+    @database = params[:db]
+    @tables   = Database.tables_for(@database)
+  rescue => e
+    redirect_to root_path, alert: "Datenbank nicht gefunden: #{e.message.split("\n").first}"
+  end
+
+  def query_schema
+    model = Database.model_for(params[:db], params[:table])
+    pk    = Array(model.primary_key)
+    render json: model.columns.map { |c|
+      { name: c.name, sql_type: c.sql_type, nullable: c.null, pk: pk.include?(c.name) }
+    }
+  rescue NameError
+    render json: [], status: :not_found
+  end
+
+  def execute_query
+    @database = params[:db]
+    sql       = params[:sql].to_s.strip
+    limit     = [[params[:limit].to_i, 1].max, 5000].min
+    limit     = 500 if limit.zero?
+
+    return render json: { error: "Leere Abfrage" }, status: :bad_request if sql.blank?
+
+    mod = Database.connect(@database)
+    t0  = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    mod::Connect.with_connection do |conn|
+      conn.execute("SET statement_timeout = '30s'")
+      conn.execute("SET lock_timeout = '5s'")
+      raw     = conn.execute(sql)
+      elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(4)
+      cols    = raw.fields
+      total   = raw.ntuples
+      rows    = raw.to_a.first(limit)
+
+      render json: {
+        columns: cols,
+        rows:    rows,
+        elapsed: elapsed,
+        count:   total,
+        limited: total > limit,
+        status:  raw.cmd_status
+      }
+    end
+  rescue => e
+    elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0).round(4) rescue nil
+    render json: { error: e.message.split("\n").first, elapsed: elapsed },
+           status: :unprocessable_entity
+  end
+
+  def export_query
+    @database = params[:db]
+    sql       = params[:sql].to_s.strip
+    fmt       = params[:fmt] == "json" ? "json" : "csv"
+
+    return redirect_to(database_query_path(@database), alert: "Leere Abfrage") if sql.blank?
+
+    mod = Database.connect(@database)
+    mod::Connect.with_connection do |conn|
+      conn.execute("SET statement_timeout = '60s'")
+      raw   = conn.execute(sql)
+      cols  = raw.fields
+      rows  = raw.to_a
+      stamp = Time.now.strftime("%Y%m%d_%H%M%S")
+
+      if fmt == "csv"
+        data = CSV.generate(headers: cols, write_headers: true) do |csv|
+          rows.each { |r| csv << cols.map { |c| r[c] } }
+        end
+        send_data data, filename: "#{@database}_query_#{stamp}.csv",
+                        type: "text/csv", disposition: "attachment"
+      else
+        send_data rows.to_json, filename: "#{@database}_query_#{stamp}.json",
+                                type: "application/json", disposition: "attachment"
+      end
+    end
+  rescue => e
+    redirect_to database_query_path(@database),
+                alert: "Export-Fehler: #{e.message.split("\n").first}"
   end
 
   def update_row
@@ -272,6 +439,15 @@ class MainController < ApplicationController
     {}.tap do |h|
       h[:q]       = @query              if @query.present?
       h[:columns] = params[:columns]    if params[:columns].present?
+    end
+  end
+
+  def json_or_redirect(message, status = :unprocessable_entity)
+    if request.format.json?
+      render json: { error: message }, status: status
+    else
+      redirect_back fallback_location: database_table_path(params[:db], params[:table]),
+                    alert: message
     end
   end
 end

@@ -1,7 +1,15 @@
 <% content_for :title, "API Dokumentation – Postview" %>
 
+<%# ── helpers ─────────────────────────────────────────────────────────────── %>
+<% method_badge = ->(m) {
+  colors = { "GET" => "bg-green-100 text-green-700", "POST" => "bg-sky-100 text-sky-700",
+             "PATCH" => "bg-amber-100 text-amber-700", "DELETE" => "bg-red-100 text-red-700" }
+  %(<span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold font-mono #{colors[m]}">#{m}</span>).html_safe
+} %>
+
 <div class="max-w-4xl mx-auto space-y-6">
-  <!-- Header -->
+
+  <%# ── Header ──────────────────────────────────────────────────────────────── %>
   <div class="bg-slate-800 rounded-xl p-6 text-white">
     <div class="flex items-start justify-between">
       <div>
@@ -16,177 +24,361 @@
         Token verwalten &rarr;
       <% end %>
     </div>
-
-    <!-- Token input for live testing -->
     <div class="mt-5 border-t border-slate-700 pt-5">
       <label class="block text-xs font-medium text-slate-400 mb-2">Bearer Token (für Try-it-out)</label>
       <div class="flex gap-2">
-        <input
-          type="password"
-          id="api-bearer-token"
-          placeholder="Ihr API-Token einfügen..."
-          class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
-        >
-        <button
-          onclick="document.getElementById('api-bearer-token').type = document.getElementById('api-bearer-token').type === 'password' ? 'text' : 'password'"
-          class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 text-sm px-3 py-2 rounded-lg transition-colors">
+        <input type="password" id="api-bearer-token" placeholder="Ihr API-Token einfügen…"
+               class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white
+                      placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono">
+        <button onclick="var f=document.getElementById('api-bearer-token');f.type=f.type==='password'?'text':'password'"
+                class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 text-sm px-3 py-2 rounded-lg transition-colors">
           Zeigen
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Authentication info -->
+  <%# ── Auth info ───────────────────────────────────────────────────────────── %>
   <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
     <h3 class="text-sm font-semibold text-amber-800 mb-1">Authentifizierung</h3>
-    <p class="text-sm text-amber-700">
-      Alle API-Anfragen erfordern einen gültigen Bearer Token im <code class="font-mono bg-amber-100 px-1 rounded">Authorization</code>-Header:
+    <p class="text-sm text-amber-700 mb-2">
+      Alle Anfragen erfordern einen gültigen Bearer Token im <code class="font-mono bg-amber-100 px-1 rounded">Authorization</code>-Header.
     </p>
-    <code class="block mt-2 text-xs bg-amber-100 text-amber-800 px-3 py-2 rounded font-mono">
+    <code class="block text-xs bg-amber-100 text-amber-800 px-3 py-2 rounded font-mono">
       Authorization: Bearer &lt;Ihr-Token&gt;
     </code>
   </div>
 
-  <!-- Endpoints -->
-  <div class="space-y-4">
-    <h2 class="text-lg font-bold text-slate-800">Endpunkte</h2>
-
-    <!-- GET /databases -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-databases">
-      <div class="p-4 flex items-center gap-3">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
-        <code class="text-sm font-mono text-slate-700">/api/v1/databases</code>
-        <span class="text-sm text-slate-500">Alle zugänglichen Datenbanken auflisten</span>
-      </div>
-      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
-        <p class="text-xs text-slate-500 mb-3">Keine Parameter erforderlich.</p>
-        <button
-          onclick="tryEndpoint('GET', '/api/v1/databases', {}, 'resp-databases')"
-          class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
-          Try it
-        </button>
-        <pre id="resp-databases" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
-      </div>
+  <%# ── Schnellübersicht ────────────────────────────────────────────────────── %>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
+      <h2 class="text-sm font-semibold text-slate-700">Endpunkte – Übersicht</h2>
     </div>
+    <table class="min-w-full text-xs divide-y divide-slate-100">
+      <% [
+        ["GET",    "/api/v1/databases",                                  "Alle Datenbanken auflisten"],
+        ["GET",    "/api/v1/databases/:db",                              "Datenbankinfo & Statistiken"],
+        ["GET",    "/api/v1/databases/:db/tables",                       "Tabellen einer Datenbank"],
+        ["GET",    "/api/v1/databases/:db/tables/:table/structure",      "Tabellenstruktur (Spalten, Typen)"],
+        ["GET",    "/api/v1/databases/:db/tables/:table/info",           "Tabellenstatistiken (pg_stat)"],
+        ["GET",    "/api/v1/databases/:db/tables/:table/rows",           "Zeilen abrufen (paginiert, Suche)"],
+        ["POST",   "/api/v1/databases/:db/tables/:table/rows",           "Neue Zeile erstellen"],
+        ["PATCH",  "/api/v1/databases/:db/tables/:table/rows",           "Zeile aktualisieren"],
+        ["DELETE", "/api/v1/databases/:db/tables/:table/rows",           "Zeile löschen"],
+      ].each do |m, path, desc| %>
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-2 w-20"><%= method_badge.(m) %></td>
+          <td class="px-2 py-2 font-mono text-slate-700"><%= path %></td>
+          <td class="px-4 py-2 text-slate-500"><%= desc %></td>
+        </tr>
+      <% end %>
+    </table>
+  </div>
 
-    <!-- GET /databases/:db/tables -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-tables">
-      <div class="p-4 flex items-center gap-3">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
-        <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables</code>
-        <span class="text-sm text-slate-500">Tabellen einer Datenbank auflisten</span>
-      </div>
-      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
-        <table class="text-xs w-full mb-3">
-          <thead><tr class="text-left text-slate-500"><th class="pb-1 pr-4">Parameter</th><th class="pb-1 pr-4">In</th><th class="pb-1 pr-4">Pflicht</th><th class="pb-1">Beschreibung</th></tr></thead>
-          <tbody class="text-slate-700">
-            <tr><td class="pr-4 font-mono py-1">db</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Datenbankname</td></tr>
-          </tbody>
-        </table>
-        <div class="flex items-center gap-2">
-          <input id="param-tables-db" type="text" placeholder="postgres" class="border border-slate-300 rounded px-2 py-1 text-xs w-40 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
-          <button
-            onclick="tryEndpoint('GET', '/api/v1/databases/' + document.getElementById('param-tables-db').value + '/tables', {}, 'resp-tables')"
-            class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
-            Try it
-          </button>
-        </div>
-        <pre id="resp-tables" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
-      </div>
-    </div>
+  <%# ── Datenbanken ─────────────────────────────────────────────────────────── %>
+  <h2 class="text-base font-bold text-slate-700 pt-2">Datenbanken</h2>
 
-    <!-- GET /databases/:db/tables/:table/rows -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-4 flex items-center gap-3">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
+  <%= render partial: "endpoint", locals: {
+    id: "databases-index", method: "GET", path: "/api/v1/databases",
+    summary: "Alle zugänglichen Datenbanken auflisten",
+    params: [],
+    response_example: '{ "databases": [{ "name": "postgres" }, { "name": "myapp" }] }',
+    try_js: "tryEndpoint('GET', '/api/v1/databases', null, 'resp-databases-index')",
+    resp_id: "resp-databases-index"
+  } %>
+
+  <%= render partial: "endpoint", locals: {
+    id: "databases-show", method: "GET", path: "/api/v1/databases/:db",
+    summary: "Datenbankinfo, Größe und pg_stat_database",
+    params: [["db", "path", true, "Datenbankname"]],
+    response_example: '{ "info": { "datname": "myapp", "size_pretty": "42 MB", ... }, "stats": { ... } }',
+    try_fields: [["try-dbs-show-db", "db", "myapp"]],
+    try_js: "(function(){var db=document.getElementById('try-dbs-show-db').value;tryEndpoint('GET','/api/v1/databases/'+db,null,'resp-databases-show');})()",
+    resp_id: "resp-databases-show"
+  } %>
+
+  <%# ── Tabellen ────────────────────────────────────────────────────────────── %>
+  <h2 class="text-base font-bold text-slate-700 pt-2">Tabellen</h2>
+
+  <%= render partial: "endpoint", locals: {
+    id: "tables-index", method: "GET", path: "/api/v1/databases/:db/tables",
+    summary: "Alle Tabellen einer Datenbank auflisten",
+    params: [["db", "path", true, "Datenbankname"]],
+    response_example: '{ "database": "myapp", "tables": ["users", "posts"] }',
+    try_fields: [["try-tables-idx-db", "db", "myapp"]],
+    try_js: "(function(){var db=document.getElementById('try-tables-idx-db').value;tryEndpoint('GET','/api/v1/databases/'+db+'/tables',null,'resp-tables-index');})()",
+    resp_id: "resp-tables-index"
+  } %>
+
+  <%= render partial: "endpoint", locals: {
+    id: "tables-structure", method: "GET", path: "/api/v1/databases/:db/tables/:table/structure",
+    summary: "Spalten, Typen, Nullable, Default und Primärschlüssel",
+    params: [
+      ["db",    "path", true, "Datenbankname"],
+      ["table", "path", true, "Tabellenname"],
+    ],
+    response_example: '{ "columns": [{ "name": "id", "sql_type": "bigint", "primary_key": true, "nullable": false }] }',
+    try_fields: [["try-tables-str-db", "db", "myapp"], ["try-tables-str-tbl", "table", "users"]],
+    try_js: "(function(){var db=document.getElementById('try-tables-str-db').value;var t=document.getElementById('try-tables-str-tbl').value;tryEndpoint('GET','/api/v1/databases/'+db+'/tables/'+t+'/structure',null,'resp-tables-structure');})()",
+    resp_id: "resp-tables-structure"
+  } %>
+
+  <%= render partial: "endpoint", locals: {
+    id: "tables-info", method: "GET", path: "/api/v1/databases/:db/tables/:table/info",
+    summary: "pg_stat_user_tables: Tupelanzahl, Scans, Größen, Indexes",
+    params: [
+      ["db",    "path", true, "Datenbankname"],
+      ["table", "path", true, "Tabellenname"],
+    ],
+    response_example: '{ "stats": { "n_live_tup": 1500, "total_size_pretty": "256 kB", ... }, "indexes": [...] }',
+    try_fields: [["try-tables-info-db", "db", "myapp"], ["try-tables-info-tbl", "table", "users"]],
+    try_js: "(function(){var db=document.getElementById('try-tables-info-db').value;var t=document.getElementById('try-tables-info-tbl').value;tryEndpoint('GET','/api/v1/databases/'+db+'/tables/'+t+'/info',null,'resp-tables-info');})()",
+    resp_id: "resp-tables-info"
+  } %>
+
+  <%# ── Zeilen ──────────────────────────────────────────────────────────────── %>
+  <h2 class="text-base font-bold text-slate-700 pt-2">Zeilen</h2>
+
+  <%= render partial: "endpoint", locals: {
+    id: "rows-index", method: "GET", path: "/api/v1/databases/:db/tables/:table/rows",
+    summary: "Zeilen abrufen — paginiert, optional mit Volltextsuche",
+    params: [
+      ["db",       "path",  true,  "Datenbankname"],
+      ["table",    "path",  true,  "Tabellenname"],
+      ["page",     "query", false, "Seite (Standard: 1)"],
+      ["per_page", "query", false, "Einträge pro Seite (Standard: 25)"],
+      ["q",        "query", false, "Volltextsuche über alle Spalten (ILIKE)"],
+    ],
+    response_example: '{ "total_count": 42, "rows": [{ "id": 1, "name": "Alice" }] }',
+    try_fields: [
+      ["try-rows-idx-db",      "db",            "myapp"],
+      ["try-rows-idx-tbl",     "table",         "users"],
+      ["try-rows-idx-q",       "q (opt.)",      ""],
+      ["try-rows-idx-page",    "page",          "1"],
+      ["try-rows-idx-per",     "per_page",      "25"],
+    ],
+    try_js: "(function(){var db=document.getElementById('try-rows-idx-db').value;var t=document.getElementById('try-rows-idx-tbl').value;var q=document.getElementById('try-rows-idx-q').value;var pg=document.getElementById('try-rows-idx-page').value;var per=document.getElementById('try-rows-idx-per').value;var ps=[];if(q)ps.push('q='+encodeURIComponent(q));if(pg)ps.push('page='+encodeURIComponent(pg));if(per)ps.push('per_page='+encodeURIComponent(per));var u='/api/v1/databases/'+db+'/tables/'+t+'/rows'+(ps.length?'?'+ps.join('&'):'');tryEndpoint('GET',u,null,'resp-rows-index');})()",
+    resp_id: "resp-rows-index"
+  } %>
+
+  <%# POST create -%>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-rows-create">
+    <div class="p-4 flex items-start gap-3">
+      <%= method_badge.("POST") %>
+      <div class="min-w-0">
         <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables/:table/rows</code>
-        <span class="text-sm text-slate-500">Zeilen einer Tabelle abrufen (paginiert)</span>
-      </div>
-      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
-        <table class="text-xs w-full mb-3">
-          <thead><tr class="text-left text-slate-500"><th class="pb-1 pr-4">Parameter</th><th class="pb-1 pr-4">In</th><th class="pb-1 pr-4">Pflicht</th><th class="pb-1">Beschreibung</th></tr></thead>
-          <tbody class="text-slate-700">
-            <tr><td class="pr-4 font-mono py-1">db</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Datenbankname</td></tr>
-            <tr><td class="pr-4 font-mono py-1">table</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Tabellenname</td></tr>
-            <tr><td class="pr-4 font-mono py-1">page</td><td class="pr-4">query</td><td class="pr-4 text-slate-400">nein</td><td>Seitennummer (Standard: 1)</td></tr>
-            <tr><td class="pr-4 font-mono py-1">per_page</td><td class="pr-4">query</td><td class="pr-4 text-slate-400">nein</td><td>Einträge pro Seite (Standard: 25)</td></tr>
-            <tr><td class="pr-4 font-mono py-1">q</td><td class="pr-4">query</td><td class="pr-4 text-slate-400">nein</td><td>Volltextsuche (ILIKE)</td></tr>
-          </tbody>
-        </table>
-        <div class="flex items-center gap-2 flex-wrap">
-          <input id="param-rows-db" type="text" placeholder="postgres" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
-          <input id="param-rows-table" type="text" placeholder="users" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
-          <input id="param-rows-page" type="number" placeholder="page=1" class="border border-slate-300 rounded px-2 py-1 text-xs w-20 focus:outline-none focus:ring-1 focus:ring-sky-500" value="1">
-          <input id="param-rows-q" type="text" placeholder="Suche..." class="border border-slate-300 rounded px-2 py-1 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-sky-500">
-          <button
-            onclick="(function(){
-              var db = document.getElementById('param-rows-db').value;
-              var table = document.getElementById('param-rows-table').value;
-              var page = document.getElementById('param-rows-page').value;
-              var q = document.getElementById('param-rows-q').value;
-              var params = '?page=' + page + (q ? '&q=' + encodeURIComponent(q) : '');
-              tryEndpoint('GET', '/api/v1/databases/' + db + '/tables/' + table + '/rows' + params, {}, 'resp-rows');
-            })()"
-            class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
-            Try it
-          </button>
-        </div>
-        <pre id="resp-rows" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-64 font-mono"></pre>
+        <p class="text-sm text-slate-500 mt-0.5">Neue Zeile erstellen</p>
       </div>
     </div>
+    <div class="border-t border-slate-100 px-4 py-3 bg-slate-50 space-y-3">
+      <p class="text-xs text-slate-600 font-semibold">Request-Body (application/json)</p>
+      <pre class="bg-slate-800 text-green-300 text-xs p-3 rounded-lg font-mono overflow-auto">{
+  "row": {
+    "name": "Bob",
+    "email": "bob@example.com"
+  },
+  "null_cols": ["bio"]
+}</pre>
+      <p class="text-xs text-slate-500">
+        Felder in <code class="font-mono bg-slate-100 px-1 rounded">null_cols</code> werden explizit als NULL gesetzt.
+        Leergelassene Felder ohne Eintrag in <code class="font-mono bg-slate-100 px-1 rounded">null_cols</code>
+        verwenden den DB-Default.
+      </p>
+      <p class="text-xs text-slate-600 font-semibold">Response <span class="font-normal text-slate-400">201 Created</span></p>
+      <pre class="bg-slate-800 text-green-300 text-xs p-3 rounded-lg font-mono">{ "created": true, "pk": { "id": 42 } }</pre>
 
-    <!-- GET /databases/:db/tables/:table/structure -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-4 flex items-center gap-3">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-green-100 text-green-700 font-mono">GET</span>
-        <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables/:table/structure</code>
-        <span class="text-sm text-slate-500">Tabellenstruktur (Spalten, Typen)</span>
-      </div>
-      <div class="border-t border-slate-100 px-4 py-3 bg-slate-50">
-        <table class="text-xs w-full mb-3">
-          <thead><tr class="text-left text-slate-500"><th class="pb-1 pr-4">Parameter</th><th class="pb-1 pr-4">In</th><th class="pb-1 pr-4">Pflicht</th><th class="pb-1">Beschreibung</th></tr></thead>
-          <tbody class="text-slate-700">
-            <tr><td class="pr-4 font-mono py-1">db</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Datenbankname</td></tr>
-            <tr><td class="pr-4 font-mono py-1">table</td><td class="pr-4">path</td><td class="pr-4 text-red-500">ja</td><td>Tabellenname</td></tr>
-          </tbody>
-        </table>
-        <div class="flex items-center gap-2">
-          <input id="param-struct-db" type="text" placeholder="postgres" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
-          <input id="param-struct-table" type="text" placeholder="users" class="border border-slate-300 rounded px-2 py-1 text-xs w-32 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
-          <button
-            onclick="tryEndpoint('GET', '/api/v1/databases/' + document.getElementById('param-struct-db').value + '/tables/' + document.getElementById('param-struct-table').value + '/structure', {}, 'resp-structure')"
-            class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors">
-            Try it
+      <div class="pt-1">
+        <p class="text-xs font-medium text-slate-500 mb-2">Try it</p>
+        <div class="flex gap-2 flex-wrap items-end">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">db</label>
+            <input id="try-create-db" type="text" placeholder="myapp"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs w-28 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">table</label>
+            <input id="try-create-table" type="text" placeholder="users"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs w-28 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div class="flex-1 min-w-[16rem]">
+            <label class="block text-xs text-slate-400 mb-1">Body JSON</label>
+            <textarea id="try-create-body" rows="3"
+                      class="w-full border border-slate-300 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-sky-500 resize-y"
+                      placeholder='{"row":{"name":"Alice"}}'></textarea>
+          </div>
+          <button onclick="(function(){
+            var db=document.getElementById('try-create-db').value;
+            var t=document.getElementById('try-create-table').value;
+            var body=document.getElementById('try-create-body').value;
+            tryEndpoint('POST','/api/v1/databases/'+db+'/tables/'+t+'/rows',body,'resp-rows-create');
+          })()"
+                  class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors self-end">
+            Send
           </button>
         </div>
-        <pre id="resp-structure" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-64 font-mono"></pre>
+        <pre id="resp-rows-create" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
       </div>
     </div>
   </div>
+
+  <%# PATCH update -%>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-rows-update">
+    <div class="p-4 flex items-start gap-3">
+      <%= method_badge.("PATCH") %>
+      <div class="min-w-0">
+        <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables/:table/rows</code>
+        <p class="text-sm text-slate-500 mt-0.5">Zeile aktualisieren (PK im Body)</p>
+      </div>
+    </div>
+    <div class="border-t border-slate-100 px-4 py-3 bg-slate-50 space-y-3">
+      <p class="text-xs text-slate-600 font-semibold">Request-Body (application/json)</p>
+      <pre class="bg-slate-800 text-green-300 text-xs p-3 rounded-lg font-mono overflow-auto">{
+  "pk":  { "id": 42 },
+  "row": { "name": "Alice Updated" },
+  "null_cols": ["bio"]
+}</pre>
+      <p class="text-xs text-slate-500">
+        Nur Felder in <code class="font-mono bg-slate-100 px-1 rounded">row</code> werden aktualisiert.
+        PK-Spalten sind schreibgeschützt.
+      </p>
+      <p class="text-xs text-slate-600 font-semibold">Response <span class="font-normal text-slate-400">200 OK</span></p>
+      <pre class="bg-slate-800 text-green-300 text-xs p-3 rounded-lg font-mono">{ "updated": true }</pre>
+
+      <div class="pt-1">
+        <p class="text-xs font-medium text-slate-500 mb-2">Try it</p>
+        <div class="flex gap-2 flex-wrap items-end">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">db</label>
+            <input id="try-update-db" type="text" placeholder="myapp"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs w-28 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">table</label>
+            <input id="try-update-table" type="text" placeholder="users"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs w-28 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div class="flex-1 min-w-[16rem]">
+            <label class="block text-xs text-slate-400 mb-1">Body JSON</label>
+            <textarea id="try-update-body" rows="3"
+                      class="w-full border border-slate-300 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-sky-500 resize-y"
+                      placeholder='{"pk":{"id":1},"row":{"name":"Bob"}}'></textarea>
+          </div>
+          <button onclick="(function(){
+            var db=document.getElementById('try-update-db').value;
+            var t=document.getElementById('try-update-table').value;
+            var body=document.getElementById('try-update-body').value;
+            tryEndpoint('PATCH','/api/v1/databases/'+db+'/tables/'+t+'/rows',body,'resp-rows-update');
+          })()"
+                  class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors self-end">
+            Send
+          </button>
+        </div>
+        <pre id="resp-rows-update" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
+      </div>
+    </div>
+  </div>
+
+  <%# DELETE -%>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" id="endpoint-rows-delete">
+    <div class="p-4 flex items-start gap-3">
+      <%= method_badge.("DELETE") %>
+      <div class="min-w-0">
+        <code class="text-sm font-mono text-slate-700">/api/v1/databases/:db/tables/:table/rows</code>
+        <p class="text-sm text-slate-500 mt-0.5">Zeile löschen (PK im Body)</p>
+      </div>
+    </div>
+    <div class="border-t border-slate-100 px-4 py-3 bg-slate-50 space-y-3">
+      <p class="text-xs text-slate-600 font-semibold">Request-Body (application/json)</p>
+      <pre class="bg-slate-800 text-green-300 text-xs p-3 rounded-lg font-mono">{ "pk": { "id": 42 } }</pre>
+      <p class="text-xs text-slate-600 font-semibold">Response <span class="font-normal text-slate-400">200 OK</span></p>
+      <pre class="bg-slate-800 text-green-300 text-xs p-3 rounded-lg font-mono">{ "deleted": true }</pre>
+
+      <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+        <p class="text-xs text-red-700 font-semibold">⚠ Unwiderruflich</p>
+        <p class="text-xs text-red-600 mt-0.5">Die Zeile wird dauerhaft gelöscht. Kein Soft-Delete.</p>
+      </div>
+
+      <div class="pt-1">
+        <p class="text-xs font-medium text-slate-500 mb-2">Try it</p>
+        <div class="flex gap-2 flex-wrap items-end">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">db</label>
+            <input id="try-delete-db" type="text" placeholder="myapp"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs w-28 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">table</label>
+            <input id="try-delete-table" type="text" placeholder="users"
+                   class="border border-slate-300 rounded px-2 py-1 text-xs w-28 font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <div class="flex-1 min-w-48">
+            <label class="block text-xs text-slate-400 mb-1">Body JSON</label>
+            <input id="try-delete-body" type="text" placeholder='{"pk":{"id":1}}'
+                   class="w-full border border-slate-300 rounded px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-sky-500">
+          </div>
+          <button onclick="(function(){
+            var db=document.getElementById('try-delete-db').value;
+            var t=document.getElementById('try-delete-table').value;
+            var body=document.getElementById('try-delete-body').value;
+            if(!confirm('Zeile wirklich löschen?'))return;
+            tryEndpoint('DELETE','/api/v1/databases/'+db+'/tables/'+t+'/rows',body,'resp-rows-delete');
+          })()"
+                  class="bg-red-600 hover:bg-red-500 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition-colors self-end">
+            Send
+          </button>
+        </div>
+        <pre id="resp-rows-delete" class="hidden mt-3 bg-slate-800 text-green-300 text-xs p-3 rounded-lg overflow-auto max-h-48 font-mono"></pre>
+      </div>
+    </div>
+  </div>
+
+  <%# ── Fehler-Referenz ─────────────────────────────────────────────────────── %>
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
+      <h2 class="text-sm font-semibold text-slate-700">Fehler-Codes</h2>
+    </div>
+    <table class="min-w-full text-xs divide-y divide-slate-100">
+      <% [
+        ["401", "Unauthorized",         "Token fehlt, ungültig oder abgelaufen"],
+        ["400", "Bad Request",           "Pflichtparameter fehlen (z. B. pk)"],
+        ["404", "Not Found",             "Datenbank, Tabelle oder Zeile nicht gefunden"],
+        ["422", "Unprocessable Entity",  "DB-Fehler, Constraint-Verletzung o. Ä."],
+        ["503", "Service Unavailable",   "PostgreSQL-Verbindung fehlgeschlagen"],
+      ].each do |code, label, desc| %>
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-2 font-mono font-bold text-slate-700 w-12"><%= code %></td>
+          <td class="px-2 py-2 font-medium text-slate-600 w-44"><%= label %></td>
+          <td class="px-4 py-2 text-slate-500"><%= desc %></td>
+        </tr>
+      <% end %>
+    </table>
+  </div>
+
 </div>
 
 <script>
-function tryEndpoint(method, path, headers, responseId) {
+function tryEndpoint(method, path, body, respId) {
   var token = document.getElementById('api-bearer-token').value.trim();
-  var responseEl = document.getElementById(responseId);
+  var el = document.getElementById(respId);
+  el.textContent = 'Lade…';
+  el.classList.remove('hidden');
 
-  responseEl.textContent = 'Lade...';
-  responseEl.classList.remove('hidden');
-
-  fetch('<%= @base_url %>' + path, {
+  var opts = {
     method: method,
-    headers: Object.assign({
-      'Accept': 'application/json',
-      'Authorization': token ? 'Bearer ' + token : ''
-    }, headers)
-  })
-  .then(function(res) {
-    return res.json().then(function(data) {
-      responseEl.textContent = 'HTTP ' + res.status + '\n\n' + JSON.stringify(data, null, 2);
-    });
-  })
-  .catch(function(err) {
-    responseEl.textContent = 'Fehler: ' + err.message;
-  });
+    headers: { 'Accept': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' }
+  };
+  if (body && body.trim()) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = body;
+  }
+
+  fetch('<%= @base_url %>' + path, opts)
+    .then(function(r) {
+      return r.text().then(function(t) {
+        try { t = JSON.stringify(JSON.parse(t), null, 2); } catch(e) {}
+        el.textContent = 'HTTP ' + r.status + '\n\n' + t;
+      });
+    })
+    .catch(function(e) { el.textContent = 'Fehler: ' + e.message; });
 }
 </script>

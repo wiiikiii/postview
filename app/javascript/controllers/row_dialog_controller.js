@@ -1,11 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["dialog", "title", "viewPanel", "viewBody", "editForm", "editFields", "pkInputs"]
+  static targets = ["dialog", "title", "viewPanel", "viewBody", "editForm", "editFields", "pkInputs", "deleteForm", "deletePkInputs"]
   static values  = { database: String, table: String }
 
   #colTypes = {}
   #mode     = "view"   // "view" | "edit" | "new"
+  #pk       = null
   #tip      = null
 
   connect() {
@@ -90,6 +91,35 @@ export default class extends Controller {
     tip.style.top  = `${top}px`
   }
 
+  deleteRow(event) {
+    event.stopPropagation()
+    if (!this.#pk || Object.keys(this.#pk).length === 0) {
+      alert("Tabelle hat keinen Primärschlüssel — Löschen nicht möglich.")
+      return
+    }
+    if (!confirm("Zeile wirklich löschen? Diese Aktion ist unwiderruflich.")) return
+
+    const csrf    = document.querySelector('meta[name="csrf-token"]')?.content
+    const pkQuery = Object.entries(this.#pk)
+      .map(([k, v]) => `pk[${encodeURIComponent(k)}]=${encodeURIComponent(v)}`)
+      .join("&")
+    const url = `/databases/${this.databaseValue}/${encodeURIComponent(this.tableValue)}/rows?${pkQuery}`
+
+    fetch(url, {
+      method: "DELETE",
+      headers: { "X-CSRF-Token": csrf, "Accept": "application/json" }
+    }).then(async resp => {
+      const isJson = resp.headers.get("content-type")?.includes("application/json")
+      const data   = isJson ? await resp.json() : {}
+      if (resp.ok) {
+        this.close()
+        window.Turbo?.visit(window.location.href) ?? window.location.reload()
+      } else {
+        alert(data.error || `Fehler ${resp.status} beim Löschen.`)
+      }
+    }).catch(e => alert("Fehler: " + e.message))
+  }
+
   edit() {
     this.#mode = "edit"
     this.viewPanelTarget.classList.add("hidden")
@@ -111,6 +141,7 @@ export default class extends Controller {
 
   #fillExisting(row, pk) {
     this.#mode = "view"
+    this.#pk   = pk
     const pkCols = Object.keys(pk)
 
     this.titleTarget.textContent = pkCols.map(k => `${k} = ${pk[k]}`).join(" · ")
@@ -148,6 +179,7 @@ export default class extends Controller {
 
   #fillNew() {
     this.#mode = "new"
+    this.#pk   = null
     this.titleTarget.textContent = "Neuer Eintrag"
 
     this.pkInputsTarget.innerHTML = ""

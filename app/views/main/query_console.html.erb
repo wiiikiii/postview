@@ -1,0 +1,155 @@
+<% content_for :title, "Query Console – #{@database} — Postview" %>
+
+<% content_for :breadcrumb do %>
+  <span class="text-slate-600">/</span>
+  <%= link_to @database, database_path(@database), class: "text-slate-400 hover:text-slate-200 transition-colors" %>
+  <span class="text-slate-600">/</span>
+  <span class="text-slate-300 font-medium">Query Console</span>
+<% end %>
+
+<% content_for :head do %>
+  <style>
+    .CodeMirror {
+      height: auto;
+      min-height: 140px;
+      max-height: 380px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      border-radius: 0 0 0.75rem 0.75rem;
+      border: none;
+    }
+    .CodeMirror-scroll    { min-height: 140px; }
+    .CodeMirror-placeholder { color: #9ca3af !important; font-style: italic; }
+  </style>
+<% end %>
+
+<div data-controller="query-console"
+     data-query-console-database-value="<%= @database %>"
+     data-query-console-tables-value="<%= @tables.to_json %>"
+     data-query-console-schema-url-value="<%= database_query_schema_path(@database, table: '__TABLE__') %>">
+
+  <div class="flex gap-4 items-start">
+
+    <%# ── Left column: Editor · Results · History ──────────────────────────── %>
+    <div class="flex-1 min-w-0">
+
+      <%# Editor card %>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4">
+        <div class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100">
+          <svg class="h-4 w-4 shrink-0 text-sky-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+          </svg>
+          <span class="text-sm font-semibold text-gray-700">SQL</span>
+          <span class="font-mono text-xs text-sky-600 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-full"><%= @database %></span>
+
+          <div class="ml-auto flex items-center gap-2">
+            <label class="text-xs text-gray-400 whitespace-nowrap">Max. Zeilen</label>
+            <select data-query-console-target="limitSelect"
+                    class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400">
+              <option value="100">100</option>
+              <option value="500" selected>500</option>
+              <option value="1000">1 000</option>
+              <option value="5000">5 000</option>
+            </select>
+
+            <button type="button"
+                    data-action="click->query-console#run"
+                    data-query-console-target="runBtn"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-500 transition-colors disabled:opacity-50">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+              </svg>
+              Ausführen
+              <kbd class="hidden sm:inline-block text-xs font-sans opacity-60 bg-sky-500 rounded px-1">⌘↵</kbd>
+            </button>
+          </div>
+        </div>
+
+        <div data-query-console-target="editorEl"></div>
+      </div>
+
+      <%# Results %>
+      <div data-query-console-target="results" class="hidden mb-4"></div>
+
+      <%# History %>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <button type="button"
+                data-action="click->query-console#toggleHistory"
+                class="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+          <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+          <span class="text-sm font-medium text-gray-600">Verlauf</span>
+          <span data-query-console-target="historyBadge"
+                class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">0</span>
+          <svg class="ml-auto h-4 w-4 text-gray-400 transition-transform duration-200"
+               data-query-console-target="historyChevron"
+               fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+
+        <div data-query-console-target="historyPanel" class="hidden border-t border-gray-100">
+          <div class="flex items-center justify-end px-4 py-2 bg-gray-50 border-b border-gray-100">
+            <button type="button"
+                    data-action="click->query-console#clearHistory"
+                    class="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              Verlauf löschen
+            </button>
+          </div>
+          <div data-query-console-target="historyList" class="divide-y divide-gray-50 max-h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <%# ── Right column: Schema browser ─────────────────────────────────────── %>
+    <div class="w-72 shrink-0 sticky top-4" style="max-height: calc(100vh - 5.5rem);">
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden"
+           style="max-height: calc(100vh - 5.5rem);">
+
+        <%# Sidebar header %>
+        <div class="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 shrink-0">
+          <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0 1 18 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0 1 18 9.375v1.5m1.5-3.75C19.496 8.25 20 8.754 20 9.375v1.5m0 0v5.25m0-5.25c0-.621.504-1.125 1.125-1.125h.375M21 9.375v5.25" />
+          </svg>
+          <span class="text-sm font-semibold text-gray-700">Schema</span>
+          <span class="ml-auto text-xs text-gray-400 tabular-nums">
+            <%= @tables.size %> Tabellen
+          </span>
+        </div>
+
+        <%# Search %>
+        <div class="px-3 py-2 border-b border-gray-100 shrink-0">
+          <div class="relative">
+            <svg class="pointer-events-none absolute inset-y-0 left-2.5 my-auto h-3.5 w-3.5 text-gray-400"
+                 fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
+            </svg>
+            <input type="search"
+                   data-query-console-target="schemaSearch"
+                   data-action="input->query-console#filterSchema"
+                   placeholder="Tabelle suchen…"
+                   class="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-xs text-gray-700 placeholder-gray-400 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400">
+          </div>
+        </div>
+
+        <%# Table list — rendered by JS %>
+        <div data-query-console-target="schemaList"
+             class="flex-1 overflow-y-auto divide-y divide-gray-50 text-xs"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <%# Hidden export form (no Turbo → triggers file download) %>
+  <form data-query-console-target="exportForm"
+        method="post"
+        action="<%= export_query_path(@database) %>"
+        data-turbo="false"
+        class="hidden">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+    <input type="hidden" name="sql" data-query-console-target="exportSql">
+    <input type="hidden" name="fmt" data-query-console-target="exportFmt" value="csv">
+  </form>
+</div>
