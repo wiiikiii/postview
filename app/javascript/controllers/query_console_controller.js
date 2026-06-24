@@ -23,6 +23,7 @@ export default class extends Controller {
   #expanded    = new Set()
   #filterQuery = ""
   #history     = []     // in-memory cache; loaded from server on connect
+  #hintTimer   = null
 
   connect() {
     this.#loadCodeMirror()
@@ -44,18 +45,40 @@ export default class extends Controller {
         this.#loadScript(`${CDN}/addon/display/placeholder.js`, "cm-ph"),
       ])
     }
+    // hint addons — safe to load multiple times (id-guarded)
+    this.#injectCss(`${CDN}/addon/hint/show-hint.css`, "cm-hint-css")
+    await this.#loadScript(`${CDN}/addon/hint/show-hint.js`, "cm-hint")
+    await this.#loadScript(`${CDN}/addon/hint/sql-hint.js`,  "cm-sql-hint")
+
     this.#editor = window.CodeMirror(this.editorElTarget, {
       mode:          "text/x-sql",
       lineNumbers:   true,
       matchBrackets: true,
       placeholder:   "SELECT * FROM tabelle LIMIT 100;",
+      hintOptions:   { tables: {}, completeSingle: false },
       extraKeys: {
         "Ctrl-Enter": () => this.run(),
         "Cmd-Enter":  () => this.run(),
         "Ctrl-/":     cm => cm.execCommand("toggleComment"),
         "Cmd-/":      cm => cm.execCommand("toggleComment"),
+        "Ctrl-Space": cm => cm.showHint({ hint: window.CodeMirror.hint.sql }),
+        "Cmd-Space":  cm => cm.showHint({ hint: window.CodeMirror.hint.sql }),
       },
     })
+
+    // auto-trigger on word characters and dot
+    this.#editor.on("keyup", (cm, e) => {
+      if (cm.state.completionActive) return
+      if (e.key.length === 1 && /[\w.]/.test(e.key)) {
+        clearTimeout(this.#hintTimer)
+        this.#hintTimer = setTimeout(
+          () => cm.showHint({ hint: window.CodeMirror.hint.sql, completeSingle: false }),
+          250
+        )
+      }
+    })
+
+    this.#prefetchSchemas()
   }
 
   #injectCss(href, id) {
@@ -72,6 +95,30 @@ export default class extends Controller {
       s.onerror = reject
       document.head.appendChild(s)
     })
+  }
+
+  // ── Autocomplete ─────────────────────────────────────────────────────────
+
+  async #prefetchSchemas() {
+    const missing = this.tablesValue.filter(t => !this.#colCache[t])
+    await Promise.all(missing.map(async table => {
+      try {
+        const url  = this.schemaUrlValue.replace("__TABLE__", encodeURIComponent(table))
+        const resp = await fetch(url, { headers: { Accept: "application/json" } })
+        this.#colCache[table] = resp.ok ? await resp.json() : []
+      } catch {
+        this.#colCache[table] = []
+      }
+    }))
+    this.#applyHints()
+  }
+
+  #applyHints() {
+    const tables = {}
+    for (const [table, cols] of Object.entries(this.#colCache)) {
+      tables[table] = cols.map(c => c.name)
+    }
+    this.#editor?.setOption("hintOptions", { tables, completeSingle: false })
   }
 
   // ── Run query ────────────────────────────────────────────────────────────
@@ -289,6 +336,7 @@ export default class extends Controller {
         const url  = this.schemaUrlValue.replace("__TABLE__", encodeURIComponent(table))
         const resp = await fetch(url, { headers: { Accept: "application/json" } })
         this.#colCache[table] = resp.ok ? await resp.json() : []
+        this.#applyHints()
       } catch {
         this.#colCache[table] = []
       }
